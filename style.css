@@ -1,4 +1,4 @@
-* { box-sizing: border-box; margin: 0; padding: 0; }
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
 :root {
   --bg-page: #1a1a2e;
@@ -21,6 +21,7 @@ body {
   overflow: hidden;
 }
 
+/* === ГЛАВНОЕ МЕНЮ === */
 .main-menu {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
@@ -33,11 +34,7 @@ body {
   transition: opacity 0.4s ease, visibility 0.4s ease;
 }
 
-.main-menu.hidden {
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-}
+.main-menu.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
 
 .menu-content {
   background: var(--bg-container);
@@ -46,9 +43,8 @@ body {
   border: 2px solid var(--accent);
   text-align: center;
   width: 400px;
+  max-width: 90vw;
   box-shadow: 0 0 50px rgba(78, 205, 196, 0.2);
-  transform: translateY(0);
-  transition: transform 0.3s ease;
 }
 
 .game-title {
@@ -59,89 +55,28 @@ body {
   text-shadow: 0 0 20px rgba(78, 205, 196, 0.5);
 }
 
-.menu-section {
-  margin-bottom: 25px;
-  text-align: left;
-}
-
-.menu-section label {
-  display: block;
-  font-size: 13px;
-  color: #9aa;
-  margin-bottom: 8px;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
+.menu-section { margin-bottom: 25px; text-align: left; }
+.menu-section label { display: block; font-size: 13px; color: #9aa; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
 .menu-section input[type="text"] {
-  width: 100%;
-  padding: 12px;
-  background: var(--bg-inner);
-  border: 2px solid var(--bg-panel);
-  border-radius: 8px;
-  color: #fff;
-  font-size: 16px;
-  outline: none;
-  transition: 0.2s;
+  width: 100%; padding: 12px; background: var(--bg-inner); border: 2px solid var(--bg-panel);
+  border-radius: 8px; color: #fff; font-size: 16px; outline: none; transition: 0.2s;
 }
+.menu-section input[type="text"]:focus { border-color: var(--accent); }
 
-.menu-section input[type="text"]:focus {
-  border-color: var(--accent);
-}
-
-.theme-presets {
-  display: flex;
-  gap: 10px;
-  justify-content: space-between;
-}
-
-.theme-btn {
-  flex: 1;
-  height: 50px;
-  border-radius: 8px;
-  border: 2px solid transparent;
-  cursor: pointer;
-  transition: 0.2s;
-  position: relative;
-  overflow: hidden;
-}
-
-.theme-btn:hover {
-  transform: translateY(-2px);
-}
-
-.theme-btn.active {
-  border-color: #fff;
-  box-shadow: 0 0 10px rgba(255,255,255,0.5);
-}
+.theme-presets { display: flex; gap: 10px; justify-content: space-between; }
+.theme-btn { flex: 1; height: 50px; border-radius: 8px; border: 2px solid transparent; cursor: pointer; transition: 0.2s; }
+.theme-btn:hover { transform: translateY(-2px); }
+.theme-btn.active { border-color: #fff; box-shadow: 0 0 10px rgba(255,255,255,0.5); }
 
 .btn-play {
-  width: 100%;
-  padding: 15px;
-  background: var(--accent);
-  color: #0f0f1e;
-  border: none;
-  border-radius: 10px;
-  font-size: 20px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: 0.2s;
-  margin-top: 10px;
-  text-transform: uppercase;
-  letter-spacing: 2px;
+  width: 100%; padding: 15px; background: var(--accent); color: #0f0f1e;
+  border: none; border-radius: 10px; font-size: 20px; font-weight: bold;
+  cursor: pointer; transition: 0.2s; margin-top: 10px; text-transform: uppercase;
 }
+.btn-play:hover { filter: brightness(1.2); transform: scale(1.02); }
+.menu-footer { margin-top: 25px; font-size: 11px; color: #666; }
 
-.btn-play:hover {
-  filter: brightness(1.2);
-  transform: scale(1.02);
-}
-
-.menu-footer {
-  margin-top: 25px;
-  font-size: 11px;
-  color: #666;
-}
-
+/* === ИНТЕРФЕЙС ИГРЫ === */
 .game-container {
   display: flex;
   gap: 15px;
@@ -149,10 +84,31 @@ body {
   background: var(--bg-container);
   border-radius: 12px;
   box-shadow: 0 0 40px rgba(0,0,0,0.6);
-  transition: background 0.25s;
   align-items: stretch;
+  flex-wrap: wrap; /* Позволяет переносить элементы на узком экране */
+  justify-content: center;
+  max-height: 95vh;
+  overflow-y: auto; /* Если не влезает по высоте на телефоне */
 }
 
+/* Центральная часть */
+.game-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.game-area { display: flex; }
+#board {
+  background: var(--bg-inner);
+  border: 2px solid var(--bg-panel);
+  border-radius: 6px;
+  max-height: 75vh; /* Ограничение для телефонов, чтобы влезло в экран */
+  width: auto;
+}
+
+/* Лидерборд */
 .leaderboard-panel {
   width: 160px;
   background: var(--bg-panel);
@@ -162,7 +118,6 @@ body {
   flex-direction: column;
   gap: 10px;
 }
-
 .leaderboard-panel h2 { font-size: 16px; color: var(--accent); text-align: center; margin-bottom: 5px; }
 .leaderboard { display: flex; flex-direction: column; gap: 6px; }
 .leader-item { display: flex; justify-content: space-between; align-items: center; background: var(--bg-container); padding: 6px 8px; border-radius: 6px; font-size: 13px; }
@@ -172,40 +127,106 @@ body {
 
 .nickname-box { margin-top: auto; display: flex; flex-direction: column; gap: 4px; }
 .nickname-box label { font-size: 11px; color: #9aa; text-transform: uppercase; }
-.nickname-box input { width: 100%; padding: 8px; background: var(--bg-inner); border: 1px solid var(--accent); border-radius: 6px; color: #fff; font-size: 13px; outline: none; transition: 0.2s; }
-.nickname-box input:focus { border-color: #fff; box-shadow: 0 0 5px var(--accent); }
+.nickname-box input { width: 100%; padding: 8px; background: var(--bg-inner); border: 1px solid var(--accent); border-radius: 6px; color: #fff; font-size: 13px; outline: none; }
 
-.game-area { display: flex; align-items: flex-start; }
-#board { background: var(--bg-inner); border: 2px solid var(--bg-panel); border-radius: 6px; transition: background 0.25s; }
-
+/* Правая панель */
 .sidebar { display: flex; flex-direction: column; gap: 15px; width: 140px; }
-.panel { background: var(--bg-panel); padding: 10px; border-radius: 8px; text-align: center; transition: background 0.25s; }
+.panel { background: var(--bg-panel); padding: 10px; border-radius: 8px; text-align: center; }
 .panel h3 { font-size: 12px; text-transform: uppercase; color: #9aa; margin-bottom: 5px; }
-#next { background: var(--bg-inner); border-radius: 4px; }
+#next { background: var(--bg-inner); border-radius: 4px; max-width: 100%; }
 #score, #lines, #level, #speed { font-size: 22px; font-weight: bold; color: var(--accent); margin-bottom: 8px; }
-#restart { padding: 12px; background: #e94560; border: none; border-radius: 8px; color: white; font-weight: bold; font-size: 15px; cursor: pointer; transition: 0.2s; }
-#restart:hover { filter: brightness(1.15); }
+#restart { padding: 12px; background: #e94560; border: none; border-radius: 8px; color: white; font-weight: bold; font-size: 15px; cursor: pointer; }
 .controls { font-size: 11px; color: #9aa; line-height: 1.7; text-align: center; }
 
-.settings { width: 220px; background: var(--bg-panel); padding: 15px; border-radius: 10px; display: flex; flex-direction: column; gap: 12px; align-self: stretch; transition: background 0.25s; }
+/* Настройки */
+.settings { width: 220px; background: var(--bg-panel); padding: 15px; border-radius: 10px; display: flex; flex-direction: column; gap: 12px; }
 .settings h2 { font-size: 15px; color: var(--accent); text-align: center; margin-bottom: 2px; }
 .section { display: flex; flex-direction: column; gap: 6px; }
 .section h3 { font-size: 11px; text-transform: uppercase; color: #9aa; margin-bottom: 2px; }
 .colors { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
 .color-item { display: flex; align-items: center; gap: 5px; background: var(--bg-container); padding: 4px 5px; border-radius: 5px; }
 .color-item span { font-size: 10px; color: #eee; font-weight: bold; }
-.color-item input[type="color"] { width: 22px; height: 20px; border: none; border-radius: 4px; cursor: pointer; background: transparent; padding: 0; flex-shrink: 0; }
-.color-item input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
-.color-item input[type="color"]::-webkit-color-swatch { border: 1px solid #444; border-radius: 4px; }
+.color-item input[type="color"] { width: 22px; height: 20px; border: none; border-radius: 4px; cursor: pointer; background: transparent; padding: 0; }
 
 .slider-item { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
 .slider-item label { font-size: 11px; color: #9aa; display: flex; justify-content: space-between; }
 .slider-item label span { color: var(--accent); font-weight: bold; }
-.slider-item input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 4px; background: var(--bg-container); border-radius: 2px; outline: none; cursor: pointer; }
+.slider-item input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 4px; background: var(--bg-container); border-radius: 2px; outline: none; }
 .slider-item input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: var(--accent); cursor: pointer; }
 
-.file-btn { display: block; text-align: center; padding: 10px; background: var(--accent); color: #0f0f1e; font-weight: bold; font-size: 13px; border-radius: 8px; cursor: pointer; transition: 0.2s; }
-.file-btn:hover { filter: brightness(1.15); }
-.small-btn { padding: 8px; background: var(--bg-container); border: 1px solid var(--accent); color: var(--accent); font-size: 12px; font-weight: bold; border-radius: 6px; cursor: pointer; transition: 0.2s; }
-.small-btn:hover { background: var(--accent); color: #0f0f1e; }
+.file-btn { display: block; text-align: center; padding: 10px; background: var(--accent); color: #0f0f1e; font-weight: bold; font-size: 13px; border-radius: 8px; cursor: pointer; }
+.small-btn { padding: 8px; background: var(--bg-container); border: 1px solid var(--accent); color: var(--accent); font-size: 12px; font-weight: bold; border-radius: 6px; cursor: pointer; }
 .status { font-size: 11px; color: #9aa; text-align: center; margin-top: 4px; }
+
+/* === МОБИЛЬНЫЕ КНОПКИ === */
+.mobile-controls {
+  display: none; /* Скрыты на ПК */
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  width: 100%;
+  max-width: 300px;
+  margin-top: 10px;
+}
+
+.mob-btn {
+  padding: 15px 0;
+  background: var(--bg-panel);
+  color: var(--accent);
+  border: 2px solid var(--bg-panel);
+  border-radius: 8px;
+  font-size: 20px;
+  font-weight: bold;
+  cursor: pointer;
+  user-select: none;
+  touch-action: manipulation; /* Убирает задержку клика */
+}
+.mob-btn:active { background: var(--accent); color: var(--bg-panel); }
+.mob-btn.wide { grid-column: span 2; font-size: 16px; }
+
+
+/* === АДАПТИВНОСТЬ ДЛЯ ТЕЛЕФОНОВ (Экраны меньше 900px) === */
+@media (max-width: 900px) {
+  body { 
+    padding: 0; 
+    overflow-y: auto; 
+    align-items: flex-start; 
+  }
+  
+  .game-container {
+    flex-direction: column;
+    padding: 10px;
+    gap: 10px;
+    max-height: none;
+    border-radius: 0;
+    width: 100%;
+    min-height: 100vh;
+  }
+
+  /* Меняем порядок: Игра и кнопки наверх, потом характеристики, потом настройки */
+  .game-center { order: 1; width: 100%; }
+  .sidebar { 
+    order: 2; 
+    width: 100%; 
+    flex-direction: row; 
+    flex-wrap: wrap; 
+    justify-content: space-between; 
+  }
+  .sidebar .controls { display: none; } /* Прячем текстовые подсказки клавиш */
+  .panel { flex: 1; min-width: 70px; }
+  
+  .leaderboard-panel { order: 3; width: 100%; flex-direction: row; flex-wrap: wrap; align-items: center; }
+  .leaderboard-panel h2 { width: 100%; margin-bottom: 0; }
+  .leaderboard { flex: 1; flex-direction: row; flex-wrap: wrap; }
+  .leader-item { flex: 1 1 40%; }
+  .nickname-box { width: 100%; margin-top: 10px; }
+  
+  .settings { order: 4; width: 100%; }
+  .settings .colors { grid-template-columns: repeat(4, 1fr); }
+
+  /* Включаем мобильные кнопки */
+  .mobile-controls { display: grid; }
+  
+  #board {
+    max-height: 60vh; /* На телефоне поле занимает чуть больше половины экрана */
+  }
+}

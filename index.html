@@ -2,6 +2,8 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
+<!-- Запрещаем масштабирование на телефонах для лучшего управления -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Тетрис</title>
 <link rel="stylesheet" href="style.css">
 </head>
@@ -19,15 +21,13 @@
 
       <div class="menu-section">
         <label>Тема оформления:</label>
-        <div class="theme-presets" id="theme-presets">
-          <!-- Пресеты будут добавлены через JS -->
-        </div>
+        <div class="theme-presets" id="theme-presets"></div>
       </div>
 
       <button id="btn-play" class="btn-play">▶ ИГРАТЬ</button>
       
       <div class="menu-footer">
-        <span>← → двигать</span> | <span>↑ поворот</span> | <span>↓ вниз</span> | <span>Space — сброс</span>
+        ← → двигать | ↑ поворот | ↓ вниз | Space — сброс
       </div>
     </div>
   </div>
@@ -35,7 +35,7 @@
   <!-- ОСНОВНОЙ ИНТЕРФЕЙС ИГРЫ -->
   <div class="game-container">
     
-    <!-- ТАБЛИЦА ЛИДЕРОВ -->
+    <!-- ТАБЛИЦА ЛИДЕРОВ (на телефоне уйдет вниз) -->
     <div class="leaderboard-panel">
       <h2>🏆 Лидеры</h2>
       <div class="leaderboard" id="leaderboard-list">
@@ -48,9 +48,20 @@
       </div>
     </div>
 
-    <!-- ИГРОВОЕ ПОЛЕ -->
-    <div class="game-area">
-      <canvas id="board" width="300" height="600"></canvas>
+    <!-- ЦЕНТРАЛЬНАЯ ЧАСТЬ (Игра + Мобильные кнопки) -->
+    <div class="game-center">
+      <div class="game-area">
+        <canvas id="board" width="300" height="600"></canvas>
+      </div>
+
+      <!-- МОБИЛЬНЫЕ КНОПКИ УПРАВЛЕНИЯ (скрыты на ПК) -->
+      <div class="mobile-controls" id="mobile-controls">
+        <button class="mob-btn" id="mob-left">◀</button>
+        <button class="mob-btn" id="mob-rotate">🔄</button>
+        <button class="mob-btn" id="mob-right">▶</button>
+        <button class="mob-btn wide" id="mob-down">▼ Вниз</button>
+        <button class="mob-btn wide" id="mob-drop">⤓ Сброс</button>
+      </div>
     </div>
 
     <!-- ПРАВАЯ ПАНЕЛЬ -->
@@ -125,9 +136,7 @@
     </div>
   </div>
 
-  <!-- Подключение Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <!-- Твоя игра -->
   <script src="game.js"></script>
 </body>
 </html>
