@@ -1,5 +1,5 @@
-const SUPABASE_URL = 'ССЫЛКА_СЮДА';
-const SUPABASE_ANON_KEY = 'КЛЮЧ_СЮДА';
+const SUPABASE_URL = 'https://mzqgdpygxxddsfyjiaxk.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_7B-N_d0iNJJzT_0VfZxN_w_lBuo5zLD';
 
 const db = window.supabase.createClient(SUPABASE_URL.trim(), SUPABASE_ANON_KEY.trim());
 
@@ -175,12 +175,10 @@ function escapeHTML(str) {
 
 async function addScoreToLeaderboard(finalScore) {
   if (finalScore <= 0) return;
-  
   let name = nickInput.value.trim();
   if (!name) name = 'Игрок';
 
   const { data } = await db.from('leaderboard').select('score').eq('name', name).maybeSingle();
-
   if (data) {
     if (finalScore > data.score) {
       await db.from('leaderboard').update({ score: finalScore }).eq('name', name);
@@ -188,7 +186,6 @@ async function addScoreToLeaderboard(finalScore) {
   } else {
     await db.from('leaderboard').insert({ name: name, score: finalScore });
   }
-
   await fetchLeaderboard();
 }
 
