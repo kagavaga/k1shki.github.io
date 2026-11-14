@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Тетрис</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  
+  <!-- ГЛАВНОЕ МЕНЮ -->
+  <div id="main-menu" class="main-menu">
+    <div class="menu-content">
+      <h1 class="game-title">ТЕТРИС</h1>
+      
+      <div class="menu-section">
+        <label>Твой никнейм:</label>
+        <input type="text" id="menu-nick" maxlength="12" placeholder="Игрок" autocomplete="off">
+      </div>
+
+      <div class="menu-section">
+        <label>Тема оформления:</label>
+        <div class="theme-presets" id="theme-presets">
+          <!-- Пресеты будут добавлены через JS -->
+        </div>
+      </div>
+
+      <button id="btn-play" class="btn-play">▶ ИГРАТЬ</button>
+      
+      <div class="menu-footer">
+        <span>← → двигать</span> | <span>↑ поворот</span> | <span>↓ вниз</span> | <span>Space — сброс</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ОСНОВНОЙ ИНТЕРФЕЙС ИГРЫ -->
+  <div class="game-container">
+    
+    <!-- ТАБЛИЦА ЛИДЕРОВ -->
+    <div class="leaderboard-panel">
+      <h2>🏆 Лидеры</h2>
+      <div class="leaderboard" id="leaderboard-list">
+        <div style="font-size:11px; color:#9aa; text-align:center;">Загрузка...</div>
+      </div>
+      
+      <div class="nickname-box">
+        <label>Ваш ник:</label>
+        <input type="text" id="player-nick" maxlength="12" placeholder="Игрок" autocomplete="off">
+      </div>
+    </div>
+
+    <!-- ИГРОВОЕ ПОЛЕ -->
+    <div class="game-area">
+      <canvas id="board" width="300" height="600"></canvas>
+    </div>
+
+    <!-- ПРАВАЯ ПАНЕЛЬ -->
+    <div class="sidebar">
+      <div class="panel">
+        <h3>Следующая</h3>
+        <canvas id="next" width="120" height="120"></canvas>
+      </div>
+      <div class="panel">
+        <h3>Счёт</h3>
+        <div id="score">0</div>
+        <h3>Линии</h3>
+        <div id="lines">0</div>
+        <h3>Уровень</h3>
+        <div id="level">1</div>
+        <h3>Скорость</h3>
+        <div id="speed">100%</div>
+      </div>
+      <button id="restart">Заново</button>
+      <div class="controls">
+        ← → двигать<br>
+        ↑ поворот<br>
+        ↓ вниз<br>
+        Space — сброс
+      </div>
+    </div>
+
+    <!-- НАСТРОЙКИ -->
+    <div class="settings">
+      <h2>Настройки</h2>
+
+      <div class="section">
+        <h3>Скорость игры</h3>
+        <div class="slider-item">
+          <label>Старт (мс) <span id="val-start">800</span></label>
+          <input type="range" id="set-start-speed" min="300" max="1200" step="50" value="800">
+        </div>
+        <div class="slider-item">
+          <label>Ускорение (мс/ур.) <span id="val-step">55</span></label>
+          <input type="range" id="set-speed-step" min="10" max="150" step="5" value="55">
+        </div>
+        <div class="slider-item">
+          <label>Предел (мс) <span id="val-min">90</span></label>
+          <input type="range" id="set-min-speed" min="30" max="200" step="10" value="90">
+        </div>
+      </div>
+
+      <div class="section">
+        <h3>Цвета фигур</h3>
+        <div class="colors" id="colors-panel"></div>
+      </div>
+
+      <div class="section">
+        <h3>Цвета интерфейса</h3>
+        <div class="colors" id="ui-colors-panel"></div>
+      </div>
+
+      <div class="section">
+        <h3>Фон игры</h3>
+        <label class="file-btn">
+          📷 Загрузить фото
+          <input type="file" id="bg-upload" accept="image/*" hidden>
+        </label>
+        <button id="bg-reset" class="small-btn">Убрать фон</button>
+        <div id="bg-status" class="status">Фон не задан</div>
+      </div>
+
+      <div class="section" style="margin-top: auto;">
+        <button id="settings-reset" class="small-btn">Сбросить всё</button>
+        <button id="leaderboard-reset" class="small-btn" style="border-color: #e94560; color: #e94560; margin-top: 5px;">Очистить лидеров</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Подключение Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Твоя игра -->
+  <script src="game.js"></script>
+</body>
+</html>
