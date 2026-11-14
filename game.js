@@ -145,7 +145,7 @@ function updateBgStatus() {
 async function fetchLeaderboard() {
   leaderboardList.innerHTML = '<div style="font-size:11px; color:#9aa; text-align:center;">Загрузка...</div>';
   try {
-    const { data, error } = await db.from('leaderboard').select('name, score').order('score', { ascending: false }).limit(5);
+    const { data, error } = await db.from('leaderboard').select('name, score').order('score', { ascending: false }).limit(20);
     if (error) throw error;
     leaderboardList.innerHTML = '';
     if (!data || data.length === 0) {

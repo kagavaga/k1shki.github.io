@@ -75,6 +75,7 @@ body {
 .btn-play:hover { filter: brightness(1.2); transform: scale(1.02); }
 .menu-footer { margin-top: 25px; font-size: 11px; color: #666; }
 
+/* Главный контейнер: фиксируем высоту, чтобы тянуть панели */
 .game-container {
   display: flex;
   gap: 15px;
@@ -82,18 +83,16 @@ body {
   background: var(--bg-container);
   border-radius: 12px;
   box-shadow: 0 0 40px rgba(0,0,0,0.6);
-  align-items: stretch;
-  flex-wrap: wrap;
-  justify-content: center;
-  max-height: 95vh;
-  overflow-y: auto;
+  align-items: stretch; /* Растягиваем детей по высоте */
+  height: 90vh; /* Фиксируем высоту контейнера */
+  max-height: 800px;
 }
 
-.game-center { display: flex; flex-direction: column; align-items: center; gap: 10px; }
-.game-area { display: flex; }
-#board { background: var(--bg-inner); border: 2px solid var(--bg-panel); border-radius: 6px; max-height: 75vh; width: auto; }
+.game-center { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; height: 100%; }
+.game-area { display: flex; height: 100%; }
+#board { background: var(--bg-inner); border: 2px solid var(--bg-panel); border-radius: 6px; height: 100%; width: auto; }
 
-/* === ИЗМЕНЕНО: Широкая таблица лидеров === */
+/* === ПАНЕЛЬ ЛИДЕРОВ === */
 .leaderboard-panel { 
   width: 240px; 
   background: var(--bg-panel); 
@@ -102,37 +101,58 @@ body {
   display: flex; 
   flex-direction: column; 
   gap: 10px; 
+  height: 100%; /* Тянется до низа */
 }
-.leaderboard-panel h2 { font-size: 18px; color: var(--accent); text-align: center; margin-bottom: 5px; }
-.leaderboard { display: flex; flex-direction: column; gap: 6px; }
+
+.leaderboard-panel h2 { font-size: 18px; color: var(--accent); text-align: center; margin-bottom: 5px; flex-shrink: 0; }
+
+/* Скролл-контейнер для списка */
+.leaderboard-scroll {
+  flex-grow: 1; /* Занимает всё свободное место */
+  overflow-y: auto; /* Включает прокрутку, если записей много */
+  display: flex; 
+  flex-direction: column; 
+  gap: 6px;
+  padding-right: 5px; /* Место под скроллбар */
+}
+
+/* Стилизация полосы прокрутки */
+.leaderboard-scroll::-webkit-scrollbar { width: 6px; }
+.leaderboard-scroll::-webkit-scrollbar-track { background: var(--bg-container); border-radius: 3px; }
+.leaderboard-scroll::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 3px; }
+
 .leader-item { 
   display: flex; 
   justify-content: space-between; 
   align-items: center; 
   background: var(--bg-container); 
-  padding: 8px 10px; 
+  padding: 6px 10px; 
   border-radius: 6px; 
-  font-size: 14px; /* Чуть крупнее шрифт */
+  font-size: 14px; 
+  flex-shrink: 0; /* Чтобы элементы не сжимались */
 }
-.leader-rank { color: #9aa; font-weight: bold; margin-right: 8px; }
+.leader-rank { color: #9aa; font-weight: bold; margin-right: 8px; width: 25px; display: inline-block; text-align: right; }
 .leader-name { flex-grow: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; color: #fff; }
 .leader-score { color: var(--accent); font-weight: bold; padding-left: 5px; }
 
-.nickname-box { margin-top: auto; display: flex; flex-direction: column; gap: 4px; }
+.nickname-box { margin-top: auto; display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; }
 .nickname-box label { font-size: 11px; color: #9aa; text-transform: uppercase; }
 .nickname-box input { width: 100%; padding: 10px; background: var(--bg-inner); border: 1px solid var(--accent); border-radius: 6px; color: #fff; font-size: 14px; outline: none; }
 
-.sidebar { display: flex; flex-direction: column; gap: 15px; width: 140px; }
+/* === ОСТАЛЬНЫЕ ПАНЕЛИ === */
+.sidebar { display: flex; flex-direction: column; gap: 15px; width: 140px; height: 100%; }
 .panel { background: var(--bg-panel); padding: 10px; border-radius: 8px; text-align: center; }
 .panel h3 { font-size: 12px; text-transform: uppercase; color: #9aa; margin-bottom: 5px; }
 #next { background: var(--bg-inner); border-radius: 4px; max-width: 100%; }
 #score, #lines, #level, #speed { font-size: 22px; font-weight: bold; color: var(--accent); margin-bottom: 8px; }
-#restart { padding: 12px; background: #e94560; border: none; border-radius: 8px; color: white; font-weight: bold; font-size: 15px; cursor: pointer; }
+#restart { padding: 12px; background: #e94560; border: none; border-radius: 8px; color: white; font-weight: bold; font-size: 15px; cursor: pointer; flex-shrink: 0; margin-top: auto;}
 .controls { font-size: 11px; color: #9aa; line-height: 1.7; text-align: center; }
 
-.settings { width: 220px; background: var(--bg-panel); padding: 15px; border-radius: 10px; display: flex; flex-direction: column; gap: 12px; }
-.settings h2 { font-size: 15px; color: var(--accent); text-align: center; margin-bottom: 2px; }
-.section { display: flex; flex-direction: column; gap: 6px; }
+.settings { width: 220px; background: var(--bg-panel); padding: 15px; border-radius: 10px; display: flex; flex-direction: column; gap: 12px; height: 100%; overflow-y: auto; }
+.settings::-webkit-scrollbar { width: 4px; }
+.settings::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 2px; }
+.settings h2 { font-size: 15px; color: var(--accent); text-align: center; margin-bottom: 2px; flex-shrink: 0; }
+.section { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
 .section h3 { font-size: 11px; text-transform: uppercase; color: #9aa; margin-bottom: 2px; }
 .colors { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
 .color-item { display: flex; align-items: center; gap: 5px; background: var(--bg-container); padding: 4px 5px; border-radius: 5px; }
@@ -173,20 +193,23 @@ body {
 .mob-btn:active { background: var(--accent); color: var(--bg-panel); }
 .mob-btn.wide { grid-column: span 2; font-size: 16px; }
 
+/* === МОБИЛЬНАЯ ВЕРСИЯ === */
 @media (max-width: 1024px), (pointer: coarse) {
   body { padding: 0; overflow-y: auto; align-items: flex-start; }
-  .game-container { flex-direction: column; padding: 10px; gap: 10px; max-height: none; border-radius: 0; width: 100%; min-height: 100vh; }
-  .game-center { order: 1; width: 100%; }
-  .sidebar { order: 2; width: 100%; flex-direction: row; flex-wrap: wrap; justify-content: space-between; }
+  .game-container { flex-direction: column; padding: 10px; gap: 10px; height: auto; max-height: none; border-radius: 0; width: 100%; min-height: 100vh; }
+  .game-center { order: 1; width: 100%; height: auto; }
+  #board { height: 55vh; }
+  .sidebar { order: 2; width: 100%; height: auto; flex-direction: row; flex-wrap: wrap; justify-content: space-between; }
   .sidebar .controls { display: none; }
   .panel { flex: 1; min-width: 70px; }
-  .leaderboard-panel { order: 3; width: 100%; flex-direction: row; flex-wrap: wrap; align-items: center; }
+  
+  .leaderboard-panel { order: 3; width: 100%; height: 300px; flex-direction: row; flex-wrap: wrap; align-items: flex-start; }
   .leaderboard-panel h2 { width: 100%; margin-bottom: 0; }
-  .leaderboard { flex: 1; flex-direction: row; flex-wrap: wrap; }
+  .leaderboard-scroll { flex: 1; flex-direction: row; flex-wrap: wrap; height: 200px; overflow-y: auto; }
   .leader-item { flex: 1 1 45%; }
   .nickname-box { width: 100%; margin-top: 10px; }
-  .settings { order: 4; width: 100%; }
+  
+  .settings { order: 4; width: 100%; height: auto; }
   .settings .colors { grid-template-columns: repeat(4, 1fr); }
   .mobile-controls { display: grid !important; margin-bottom: 20px; }
-  #board { max-height: 55vh; }
 }
