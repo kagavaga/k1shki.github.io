@@ -75,7 +75,6 @@ body {
 .btn-play:hover { filter: brightness(1.2); transform: scale(1.02); }
 .menu-footer { margin-top: 25px; font-size: 11px; color: #666; }
 
-/* Главный контейнер: фиксируем высоту, чтобы тянуть панели */
 .game-container {
   display: flex;
   gap: 15px;
@@ -83,8 +82,8 @@ body {
   background: var(--bg-container);
   border-radius: 12px;
   box-shadow: 0 0 40px rgba(0,0,0,0.6);
-  align-items: stretch; /* Растягиваем детей по высоте */
-  height: 90vh; /* Фиксируем высоту контейнера */
+  align-items: stretch; 
+  height: 90vh; 
   max-height: 800px;
 }
 
@@ -92,7 +91,6 @@ body {
 .game-area { display: flex; height: 100%; }
 #board { background: var(--bg-inner); border: 2px solid var(--bg-panel); border-radius: 6px; height: 100%; width: auto; }
 
-/* === ПАНЕЛЬ ЛИДЕРОВ === */
 .leaderboard-panel { 
   width: 240px; 
   background: var(--bg-panel); 
@@ -101,22 +99,20 @@ body {
   display: flex; 
   flex-direction: column; 
   gap: 10px; 
-  height: 100%; /* Тянется до низа */
+  height: 100%; 
 }
 
 .leaderboard-panel h2 { font-size: 18px; color: var(--accent); text-align: center; margin-bottom: 5px; flex-shrink: 0; }
 
-/* Скролл-контейнер для списка */
 .leaderboard-scroll {
-  flex-grow: 1; /* Занимает всё свободное место */
-  overflow-y: auto; /* Включает прокрутку, если записей много */
+  flex-grow: 1;
+  overflow-y: auto; 
   display: flex; 
   flex-direction: column; 
   gap: 6px;
-  padding-right: 5px; /* Место под скроллбар */
+  padding-right: 5px;
 }
 
-/* Стилизация полосы прокрутки */
 .leaderboard-scroll::-webkit-scrollbar { width: 6px; }
 .leaderboard-scroll::-webkit-scrollbar-track { background: var(--bg-container); border-radius: 3px; }
 .leaderboard-scroll::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 3px; }
@@ -129,7 +125,7 @@ body {
   padding: 6px 10px; 
   border-radius: 6px; 
   font-size: 14px; 
-  flex-shrink: 0; /* Чтобы элементы не сжимались */
+  flex-shrink: 0;
 }
 .leader-rank { color: #9aa; font-weight: bold; margin-right: 8px; width: 25px; display: inline-block; text-align: right; }
 .leader-name { flex-grow: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; color: #fff; }
@@ -139,7 +135,6 @@ body {
 .nickname-box label { font-size: 11px; color: #9aa; text-transform: uppercase; }
 .nickname-box input { width: 100%; padding: 10px; background: var(--bg-inner); border: 1px solid var(--accent); border-radius: 6px; color: #fff; font-size: 14px; outline: none; }
 
-/* === ОСТАЛЬНЫЕ ПАНЕЛИ === */
 .sidebar { display: flex; flex-direction: column; gap: 15px; width: 140px; height: 100%; }
 .panel { background: var(--bg-panel); padding: 10px; border-radius: 8px; text-align: center; }
 .panel h3 { font-size: 12px; text-transform: uppercase; color: #9aa; margin-bottom: 5px; }
@@ -193,7 +188,6 @@ body {
 .mob-btn:active { background: var(--accent); color: var(--bg-panel); }
 .mob-btn.wide { grid-column: span 2; font-size: 16px; }
 
-/* === МОБИЛЬНАЯ ВЕРСИЯ === */
 @media (max-width: 1024px), (pointer: coarse) {
   body { padding: 0; overflow-y: auto; align-items: flex-start; }
   .game-container { flex-direction: column; padding: 10px; gap: 10px; height: auto; max-height: none; border-radius: 0; width: 100%; min-height: 100vh; }

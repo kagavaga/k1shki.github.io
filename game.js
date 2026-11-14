@@ -1,5 +1,5 @@
-const SUPABASE_URL = 'https://mzqgdpygxxddsfyjiaxk.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_7B-N_d0iNJJzT_0VfZxN_w_lBuo5zLD';
+const SUPABASE_URL = 'ССЫЛКА_СЮДА';
+const SUPABASE_ANON_KEY = 'КЛЮЧ_СЮДА';
 
 const db = window.supabase.createClient(SUPABASE_URL.trim(), SUPABASE_ANON_KEY.trim());
 
@@ -147,11 +147,13 @@ async function fetchLeaderboard() {
   try {
     const { data, error } = await db.from('leaderboard').select('name, score').order('score', { ascending: false }).limit(20);
     if (error) throw error;
+    
     leaderboardList.innerHTML = '';
     if (!data || data.length === 0) {
       leaderboardList.innerHTML = '<div style="font-size:11px; color:#9aa; text-align:center;">Пока пусто</div>';
       return;
     }
+    
     data.forEach((entry, index) => {
       const div = document.createElement('div');
       div.className = 'leader-item';
@@ -173,10 +175,21 @@ function escapeHTML(str) {
 
 async function addScoreToLeaderboard(finalScore) {
   if (finalScore <= 0) return;
+  
   let name = nickInput.value.trim();
   if (!name) name = 'Игрок';
-  const { error } = await db.from('leaderboard').insert({ name: name, score: finalScore });
-  if (!error) await fetchLeaderboard();
+
+  const { data } = await db.from('leaderboard').select('score').eq('name', name).maybeSingle();
+
+  if (data) {
+    if (finalScore > data.score) {
+      await db.from('leaderboard').update({ score: finalScore }).eq('name', name);
+    }
+  } else {
+    await db.from('leaderboard').insert({ name: name, score: finalScore });
+  }
+
+  await fetchLeaderboard();
 }
 
 document.getElementById('leaderboard-reset').addEventListener('click', async () => {
