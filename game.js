@@ -1,16 +1,8 @@
-// ==========================================
-// ВСТАВЬ СВОИ КЛЮЧИ SUPABASE ЗДЕСЬ!
-// ==========================================
-const SUPABASE_URL = 'https://mzqgdpygxxddsfyjiaxk.supabase.co'; 
-const SUPABASE_ANON_KEY = 'sb_publishable_7B-N_d0iNJJzT_0VfZxN_w_lBuo5zLD';   
-// ==========================================
+const SUPABASE_URL = 'https://mzqgdpygxxddsfyjiaxk.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_7B-N_d0iNJJzT_0VfZxN_w_lBuo5zLD';
 
-const db = window.supabase.createClient(
-  SUPABASE_URL.trim(), 
-  SUPABASE_ANON_KEY.trim()
-);
+const db = window.supabase.createClient(SUPABASE_URL.trim(), SUPABASE_ANON_KEY.trim());
 
-// === ОСТАЛЬНАЯ ИГРА ===
 const COLS = 10;
 const ROWS = 20;
 const BLOCK = 30;
@@ -29,11 +21,9 @@ const levelEl = document.getElementById('level');
 const speedEl = document.getElementById('speed');
 const restartBtn = document.getElementById('restart');
 
-// Элементы лидерборда
 const nickInput = document.getElementById('player-nick');
 const leaderboardList = document.getElementById('leaderboard-list');
 
-// Элементы меню
 const mainMenu = document.getElementById('main-menu');
 const menuNick = document.getElementById('menu-nick');
 const btnPlay = document.getElementById('btn-play');
@@ -72,28 +62,21 @@ let board, current, next, score, lines, level, dropInterval, dropCounter, lastTi
 let backgroundImage = null;
 let gameStarted = false;
 
-// === ИНИЦИАЛИЗАЦИЯ МЕНЮ ===
 function buildThemePresets() {
   themePresetsBox.innerHTML = '';
   THEME_PRESETS.forEach((theme, index) => {
     const btn = document.createElement('div');
     btn.className = 'theme-btn';
     if (index === 0) btn.classList.add('active');
-    
     btn.style.background = `linear-gradient(135deg, ${theme.ui.page} 0%, ${theme.ui.accent} 100%)`;
-    
     btn.addEventListener('click', () => {
       document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      
-      Object.keys(theme.ui).forEach(key => {
-        UI_COLORS[key] = theme.ui[key];
-      });
+      Object.keys(theme.ui).forEach(key => UI_COLORS[key] = theme.ui[key]);
       applyUIColors();
       buildUIColorsPanel(); 
       saveSettings();
     });
-    
     themePresetsBox.appendChild(btn);
   });
 }
@@ -102,14 +85,12 @@ btnPlay.addEventListener('click', () => {
   const nick = menuNick.value.trim() || 'Игрок';
   nickInput.value = nick;
   localStorage.setItem('tetris-nick', nick);
-  
   mainMenu.classList.add('hidden');
   gameStarted = true;
   btnPlay.blur();
   reset();
 });
 
-// === ПРИМЕНЕНИЕ ЦВЕТОВ ===
 function applyUIColors() {
   const root = document.documentElement;
   root.style.setProperty('--bg-page', UI_COLORS.page);
@@ -119,7 +100,6 @@ function applyUIColors() {
   root.style.setProperty('--accent', UI_COLORS.accent);
 }
 
-// === LOCALSTORAGE ===
 function saveSettings() {
   try {
     localStorage.setItem('tetris-piece-colors', JSON.stringify(PIECE_COLORS));
@@ -130,20 +110,17 @@ function saveSettings() {
     } else {
       localStorage.removeItem('tetris-bg');
     }
-  } catch(e) { console.warn('Не удалось сохранить', e); }
+  } catch(e) {}
 }
 
 function loadSettings() {
   try {
     const pieceRaw = localStorage.getItem('tetris-piece-colors');
     if (pieceRaw) PIECE_COLORS = { ...DEFAULT_PIECE_COLORS, ...JSON.parse(pieceRaw) };
-
     const uiRaw = localStorage.getItem('tetris-ui-colors');
     if (uiRaw) UI_COLORS = { ...UI_COLORS, ...JSON.parse(uiRaw) };
-
     const speedRaw = localStorage.getItem('tetris-speed');
     if (speedRaw) speedSettings = { ...DEFAULT_SPEED, ...JSON.parse(speedRaw) };
-
     const bgRaw = localStorage.getItem('tetris-bg');
     if (bgRaw) {
       const img = new Image();
@@ -151,13 +128,12 @@ function loadSettings() {
       img.onerror = () => localStorage.removeItem('tetris-bg');
       img.src = bgRaw;
     }
-    
     const savedNick = localStorage.getItem('tetris-nick');
     if (savedNick) {
       menuNick.value = savedNick;
       nickInput.value = savedNick;
     }
-  } catch(e) { console.warn('Ошибка загрузки', e); }
+  } catch(e) {}
 }
 
 function updateBgStatus() {
@@ -166,25 +142,16 @@ function updateBgStatus() {
   status.textContent = backgroundImage ? '✅ Фон загружен' : 'Фон не задан';
 }
 
-// === SUPABASE ЛИДЕРБОРД ===
 async function fetchLeaderboard() {
   leaderboardList.innerHTML = '<div style="font-size:11px; color:#9aa; text-align:center;">Загрузка...</div>';
-
   try {
-    const { data, error } = await db
-      .from('leaderboard')
-      .select('name, score')
-      .order('score', { ascending: false })
-      .limit(5);
-
+    const { data, error } = await db.from('leaderboard').select('name, score').order('score', { ascending: false }).limit(5);
     if (error) throw error;
-
     leaderboardList.innerHTML = '';
     if (!data || data.length === 0) {
       leaderboardList.innerHTML = '<div style="font-size:11px; color:#9aa; text-align:center;">Пока пусто</div>';
       return;
     }
-
     data.forEach((entry, index) => {
       const div = document.createElement('div');
       div.className = 'leader-item';
@@ -196,7 +163,6 @@ async function fetchLeaderboard() {
       leaderboardList.appendChild(div);
     });
   } catch (err) {
-    console.error("Ошибка Supabase:", err);
     leaderboardList.innerHTML = `<div style="font-size:11px; color:#e94560; text-align:center; padding: 5px;">Ошибка: ${err.message || 'Нет связи'}</div>`;
   }
 }
@@ -209,26 +175,16 @@ async function addScoreToLeaderboard(finalScore) {
   if (finalScore <= 0) return;
   let name = nickInput.value.trim();
   if (!name) name = 'Игрок';
-
-  const { error } = await db
-    .from('leaderboard')
-    .insert({ name: name, score: finalScore });
-
-  if (error) {
-    console.error('Ошибка сохранения рекорда:', error);
-  } else {
-    await fetchLeaderboard();
-  }
+  const { error } = await db.from('leaderboard').insert({ name: name, score: finalScore });
+  if (!error) await fetchLeaderboard();
 }
 
 document.getElementById('leaderboard-reset').addEventListener('click', async () => {
-  if (!confirm('Очистить таблицу лидеров для ВСЕХ игроков?')) return;
-  const { error } = await db.from('leaderboard').delete().neq('id', 0); 
-  if (error) console.error('Ошибка очистки:', error);
-  else await fetchLeaderboard();
+  if (!confirm('Очистить таблицу лидеров?')) return;
+  await db.from('leaderboard').delete().neq('id', 0); 
+  await fetchLeaderboard();
 });
 
-// === ПАНЕЛИ НАСТРОЕК ===
 const colorsPanel = document.getElementById('colors-panel');
 function buildColorsPanel() {
   colorsPanel.innerHTML = '';
@@ -269,7 +225,6 @@ function buildUIColorsPanel() {
   });
 }
 
-// === СЛАЙДЕРЫ ===
 const setStartSpeed = document.getElementById('set-start-speed');
 const setSpeedStep = document.getElementById('set-speed-step');
 const setMinSpeed = document.getElementById('set-min-speed');
@@ -290,7 +245,6 @@ setStartSpeed.addEventListener('input', () => { speedSettings.start = parseInt(s
 setSpeedStep.addEventListener('input', () => { speedSettings.step = parseInt(setSpeedStep.value); valStep.textContent = speedSettings.step; if (!gameOver && gameStarted) dropInterval = recalcSpeed(); saveSettings(); });
 setMinSpeed.addEventListener('input', () => { speedSettings.min = parseInt(setMinSpeed.value); valMin.textContent = speedSettings.min; if (!gameOver && gameStarted) dropInterval = recalcSpeed(); saveSettings(); });
 
-// === ФОН ===
 document.getElementById('bg-upload').addEventListener('change', (e) => {
   const file = e.target.files[0]; if (!file) return;
   const reader = new FileReader();
@@ -314,7 +268,6 @@ document.getElementById('settings-reset').addEventListener('click', () => {
   saveSettings(); if (gameStarted) reset();
 });
 
-// === ИГРОВАЯ ЛОГИКА ===
 function createBoard() { return Array.from({length: ROWS}, () => Array(COLS).fill(null)); }
 function newPiece() {
   const keys = Object.keys(SHAPES);
@@ -504,11 +457,9 @@ function reset() {
   next = newPiece(); spawn(); updateUI(); update();
 }
 
-// === УПРАВЛЕНИЕ (КЛАВИАТУРА) ===
 document.addEventListener('keydown', e => {
   if (document.activeElement === nickInput || document.activeElement === menuNick) return;
   if (!gameStarted || gameOver) return;
-
   if (e.key === 'ArrowLeft') move(-1);
   else if (e.key === 'ArrowRight') move(1);
   else if (e.key === 'ArrowDown') { drop(); }
@@ -517,14 +468,18 @@ document.addEventListener('keydown', e => {
   if (['ArrowLeft','ArrowRight','ArrowDown','ArrowUp',' '].includes(e.key)) e.preventDefault();
 });
 
-// === УПРАВЛЕНИЕ (МОБИЛЬНЫЕ КНОПКИ) ===
 document.getElementById('mob-left').addEventListener('click', () => { move(-1); });
 document.getElementById('mob-right').addEventListener('click', () => { move(1); });
 document.getElementById('mob-rotate').addEventListener('click', () => { playerRotate(); });
 document.getElementById('mob-down').addEventListener('click', () => { drop(); });
 document.getElementById('mob-drop').addEventListener('click', () => { hardDrop(); });
 
-// === ОСТАЛЬНЫЕ ОБРАБОТЧИКИ ===
+const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+if (!isTouchDevice) {
+  const mobControls = document.getElementById('mobile-controls');
+  if (mobControls) mobControls.style.display = 'none';
+}
+
 restartBtn.addEventListener('click', () => { if (gameStarted) reset(); });
 nickInput.addEventListener('input', () => {
   localStorage.setItem('tetris-nick', nickInput.value.trim());
@@ -535,7 +490,6 @@ menuNick.addEventListener('input', () => {
   if (nickInput.value !== menuNick.value) nickInput.value = menuNick.value;
 });
 
-// === ИНИЦИАЛИЗАЦИЯ ===
 loadSettings();
 applyUIColors();
 buildThemePresets();

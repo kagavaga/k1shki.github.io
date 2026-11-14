@@ -2,59 +2,43 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<!-- Запрещаем масштабирование на телефонах для лучшего управления -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Тетрис</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  
-  <!-- ГЛАВНОЕ МЕНЮ -->
   <div id="main-menu" class="main-menu">
     <div class="menu-content">
       <h1 class="game-title">ТЕТРИС</h1>
-      
       <div class="menu-section">
         <label>Твой никнейм:</label>
         <input type="text" id="menu-nick" maxlength="12" placeholder="Игрок" autocomplete="off">
       </div>
-
       <div class="menu-section">
         <label>Тема оформления:</label>
         <div class="theme-presets" id="theme-presets"></div>
       </div>
-
       <button id="btn-play" class="btn-play">▶ ИГРАТЬ</button>
-      
-      <div class="menu-footer">
-        ← → двигать | ↑ поворот | ↓ вниз | Space — сброс
-      </div>
+      <div class="menu-footer">← → двигать | ↑ поворот | ↓ вниз | Space — сброс</div>
     </div>
   </div>
 
-  <!-- ОСНОВНОЙ ИНТЕРФЕЙС ИГРЫ -->
   <div class="game-container">
-    
-    <!-- ТАБЛИЦА ЛИДЕРОВ (на телефоне уйдет вниз) -->
     <div class="leaderboard-panel">
       <h2>🏆 Лидеры</h2>
       <div class="leaderboard" id="leaderboard-list">
         <div style="font-size:11px; color:#9aa; text-align:center;">Загрузка...</div>
       </div>
-      
       <div class="nickname-box">
         <label>Ваш ник:</label>
         <input type="text" id="player-nick" maxlength="12" placeholder="Игрок" autocomplete="off">
       </div>
     </div>
 
-    <!-- ЦЕНТРАЛЬНАЯ ЧАСТЬ (Игра + Мобильные кнопки) -->
     <div class="game-center">
       <div class="game-area">
         <canvas id="board" width="300" height="600"></canvas>
       </div>
-
-      <!-- МОБИЛЬНЫЕ КНОПКИ УПРАВЛЕНИЯ (скрыты на ПК) -->
       <div class="mobile-controls" id="mobile-controls">
         <button class="mob-btn" id="mob-left">◀</button>
         <button class="mob-btn" id="mob-rotate">🔄</button>
@@ -64,7 +48,6 @@
       </div>
     </div>
 
-    <!-- ПРАВАЯ ПАНЕЛЬ -->
     <div class="sidebar">
       <div class="panel">
         <h3>Следующая</h3>
@@ -81,18 +64,11 @@
         <div id="speed">100%</div>
       </div>
       <button id="restart">Заново</button>
-      <div class="controls">
-        ← → двигать<br>
-        ↑ поворот<br>
-        ↓ вниз<br>
-        Space — сброс
-      </div>
+      <div class="controls">← → двигать<br>↑ поворот<br>↓ вниз<br>Space — сброс</div>
     </div>
 
-    <!-- НАСТРОЙКИ -->
     <div class="settings">
       <h2>Настройки</h2>
-
       <div class="section">
         <h3>Скорость игры</h3>
         <div class="slider-item">
@@ -108,17 +84,14 @@
           <input type="range" id="set-min-speed" min="30" max="200" step="10" value="90">
         </div>
       </div>
-
       <div class="section">
         <h3>Цвета фигур</h3>
         <div class="colors" id="colors-panel"></div>
       </div>
-
       <div class="section">
         <h3>Цвета интерфейса</h3>
         <div class="colors" id="ui-colors-panel"></div>
       </div>
-
       <div class="section">
         <h3>Фон игры</h3>
         <label class="file-btn">
@@ -128,7 +101,6 @@
         <button id="bg-reset" class="small-btn">Убрать фон</button>
         <div id="bg-status" class="status">Фон не задан</div>
       </div>
-
       <div class="section" style="margin-top: auto;">
         <button id="settings-reset" class="small-btn">Сбросить всё</button>
         <button id="leaderboard-reset" class="small-btn" style="border-color: #e94560; color: #e94560; margin-top: 5px;">Очистить лидеров</button>
@@ -139,4 +111,4 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="game.js"></script>
 </body>
-</html>
+</html> 
