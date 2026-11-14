@@ -1,4 +1,3 @@
-//test//
 const SUPABASE_URL = 'https://mzqgdpygxxddsfyjiaxk.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_7B-N_d0iNJJzT_0VfZxN_w_lBuo5zLD';
 
@@ -11,6 +10,15 @@ const LINES_PER_LEVEL = 8;
 const DEFAULT_SPEED = { start: 800, step: 55, min: 90 };
 let speedSettings = { ...DEFAULT_SPEED };
 
+// === НАСТРОЙКИ БОССА ===
+const BOSS_TRIGGER_SCORE = 2500; 
+const BOSS_MAX_HP = 100;
+const BOSS_SPEED_MULTIPLIER = 3; // Ускорение в 3 раза
+
+let bossScoreTarget = BOSS_TRIGGER_SCORE;
+let bossHP = BOSS_MAX_HP;
+let isBossActive = false;
+
 const canvas = document.getElementById('board');
 const ctx = canvas.getContext('2d');
 const nextCanvas = document.getElementById('next');
@@ -21,6 +29,12 @@ const linesEl = document.getElementById('lines');
 const levelEl = document.getElementById('level');
 const speedEl = document.getElementById('speed');
 const restartBtn = document.getElementById('restart');
+
+// Элементы Босса
+const bossModal = document.getElementById('boss-modal');
+const bossHpFill = document.getElementById('boss-hp-fill');
+const bossHpText = document.getElementById('boss-hp-text');
+const btnStartBoss = document.getElementById('btn-start-boss');
 
 const nickInput = document.getElementById('player-nick');
 const leaderboardList = document.getElementById('leaderboard-list');
@@ -62,6 +76,7 @@ Object.keys(DEFAULT_UI_COLORS).forEach(k => UI_COLORS[k] = DEFAULT_UI_COLORS[k].
 let board, current, next, score, lines, level, dropInterval, dropCounter, lastTime, gameOver, rafId;
 let backgroundImage = null;
 let gameStarted = false;
+let isBossPaused = false; // Флаг для паузы перед боссом
 
 function buildThemePresets() {
   themePresetsBox.innerHTML = '';
@@ -317,6 +332,24 @@ function merge(board, piece) {
   });
 }
 
+// === ЛОГИКА БОССА ===
+function updateBossUI() {
+  const percent = Math.max(0, (bossHP / BOSS_MAX_HP) * 100);
+  bossHpFill.style.width = percent + '%';
+  bossHpText.textContent = `${Math.max(0, bossHP)} / ${BOSS_MAX_HP}`;
+}
+
+function startBossFight() {
+  bossHP = BOSS_MAX_HP;
+  isBossActive = true;
+  isBossPaused = false;
+  bossModal.classList.add('hidden');
+  updateBossUI();
+  recalcSpeed();
+  updateUI();
+}
+
+// === ОЧИСТКА ЛИНИЙ (С УРОНОМ БОССУ) ===
 function clearLines() {
   let cleared = 0;
   for (let y = ROWS - 1; y >= 0; y--) {
@@ -326,6 +359,32 @@ function clearLines() {
     const points = [0, 100, 300, 500, 800];
     score += points[cleared] * level;
     lines += cleared;
+
+    // Наносим урон боссу
+    if (isBossActive) {
+      bossHP -= cleared * 10; // Каждая линия = 10 урона
+      updateBossUI();
+      
+      if (bossHP <= 0) {
+        // Босс повержен!
+        isBossActive = false;
+        bossScoreTarget += BOSS_TRIGGER_SCORE; // Следующий босс через 2500 очков
+        alert("🎉 БОСС ПОВЕРЖЕН! Вы получаете передышку.");
+        recalcSpeed();
+        updateUI();
+      }
+    } else {
+      // Проверяем, не пора ли вызвать босса
+      if (score >= bossScoreTarget) {
+        isBossActive = true;
+        isBossPaused = true;
+        bossHP = BOSS_MAX_HP;
+        updateBossUI();
+        bossModal.classList.remove('hidden');
+        return; // Прерываем, ждем кнопки "В бой"
+      }
+    }
+
     const newLevel = Math.floor(lines / LINES_PER_LEVEL) + 1;
     if (newLevel !== level) level = newLevel;
     dropInterval = recalcSpeed();
@@ -337,7 +396,13 @@ function recalcSpeed() {
   if (!dropInterval) dropInterval = speedSettings.start;
   const progress = (lines % LINES_PER_LEVEL) / LINES_PER_LEVEL;
   const targetSpeed = Math.max(speedSettings.min, speedSettings.start - (level - 1) * speedSettings.step);
-  return Math.max(speedSettings.min, targetSpeed * (1 - progress * 0.25));
+  let base = Math.max(speedSettings.min, targetSpeed * (1 - progress * 0.25));
+  
+  // Если босс активен — ускоряем
+  if (isBossActive) {
+    base = base / BOSS_SPEED_MULTIPLIER;
+  }
+  return Math.max(speedSettings.min, base);
 }
 
 function updateUI() {
@@ -346,6 +411,7 @@ function updateUI() {
   speedEl.textContent = pct + '%';
 }
 
+// ... (функции drawBlock, drawGhostBlock, draw, drawNext остаются без изменений) ...
 function drawBlock(c, x, y, color, size = BLOCK, alpha = 1) {
   c.save(); c.globalAlpha = alpha; c.fillStyle = color;
   c.fillRect(x * size, y * size, size, size);
@@ -374,6 +440,14 @@ function draw() {
     ctx.fillStyle = 'rgba(15, 15, 30, 0.55)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
   } else {
     ctx.fillStyle = UI_COLORS.inner; ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+
+  // Если босс активен, рисуем красную рамку вокруг поля
+  if (isBossActive) {
+    ctx.strokeStyle = '#e94560';
+    ctx.lineWidth = 4;
+    ctx.strokeRect(2, 2, canvas.width - 4, canvas.height - 4);
+    ctx.lineWidth = 1;
   }
 
   ctx.strokeStyle = 'rgba(255,255,255,0.06)';
@@ -417,15 +491,16 @@ function drawNext() {
   nctx.restore();
 }
 
+// === УПРАВЛЕНИЕ (БЛОКИРУЕМ ПРИ ПАУЗЕ БОССА) ===
 function drop() {
-  if (!gameStarted) return;
+  if (!gameStarted || isBossPaused) return;
   current.y++;
   if (collide(board, current)) { current.y--; merge(board, current); clearLines(); spawn(); }
   dropCounter = 0;
 }
 
 function hardDrop() {
-  if (!gameStarted) return;
+  if (!gameStarted || isBossPaused) return;
   while (!collide(board, current)) current.y++;
   current.y--; merge(board, current); clearLines(); spawn();
   dropCounter = 0;
@@ -437,10 +512,10 @@ function spawn() {
   drawNext();
 }
 
-function move(dir) { if (gameStarted) { current.x += dir; if (collide(board, current)) current.x -= dir; } }
+function move(dir) { if (gameStarted && !isBossPaused) { current.x += dir; if (collide(board, current)) current.x -= dir; } }
 
 function playerRotate() {
-  if (!gameStarted) return;
+  if (!gameStarted || isBossPaused) return;
   const rotated = rotate(current.matrix);
   const old = current.matrix;
   current.matrix = rotated;
@@ -455,6 +530,15 @@ function playerRotate() {
 function update(time = 0) {
   if (!gameStarted) return;
   if (gameOver) { draw(); return; }
+  
+  // Если пауза перед боссом, просто рисуем и ждем
+  if (isBossPaused) {
+    draw();
+    rafId = requestAnimationFrame(update);
+    lastTime = time; // сбрасываем таймер, чтобы фигура не упала сразу после паузы
+    return;
+  }
+
   const delta = time - lastTime; lastTime = time; dropCounter += delta;
   if (dropCounter > dropInterval) drop();
   draw(); rafId = requestAnimationFrame(update);
@@ -465,8 +549,20 @@ function reset() {
   board = createBoard(); score = 0; lines = 0; level = 1;
   dropInterval = speedSettings.start;
   dropCounter = 0; lastTime = 0; gameOver = false;
+  
+  // Сброс босса
+  bossScoreTarget = BOSS_TRIGGER_SCORE;
+  isBossActive = false;
+  isBossPaused = false;
+  bossModal.classList.add('hidden');
+  
   next = newPiece(); spawn(); updateUI(); update();
 }
+
+// Кнопка старта боя с боссом
+btnStartBoss.addEventListener('click', () => {
+  startBossFight();
+});
 
 document.addEventListener('keydown', e => {
   if (document.activeElement === nickInput || document.activeElement === menuNick) return;
