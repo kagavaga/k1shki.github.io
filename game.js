@@ -1,5 +1,5 @@
-const SUPABASE_URL = 'https://mzqgdpygxxddsfyjiaxk.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_7B-N_d0iNJJzT_0VfZxN_w_lBuo5zLD';
+const SUPABASE_URL = 'ССЫЛКА_СЮДА';
+const SUPABASE_ANON_KEY = 'КЛЮЧ_СЮДА';
 
 const db = window.supabase.createClient(SUPABASE_URL.trim(), SUPABASE_ANON_KEY.trim());
 
@@ -13,7 +13,7 @@ let speedSettings = { ...DEFAULT_SPEED };
 // === НАСТРОЙКИ БОССА ===
 const BOSS_TRIGGER_SCORE = 2500; 
 const BOSS_MAX_HP = 100;
-const BOSS_SPEED_MULTIPLIER = 3; // Ускорение в 3 раза
+const BOSS_SPEED_MULTIPLIER = 2.5; // Чуть снизил ускорение, чтобы было реально выжить
 
 let bossScoreTarget = BOSS_TRIGGER_SCORE;
 let bossHP = BOSS_MAX_HP;
@@ -76,7 +76,7 @@ Object.keys(DEFAULT_UI_COLORS).forEach(k => UI_COLORS[k] = DEFAULT_UI_COLORS[k].
 let board, current, next, score, lines, level, dropInterval, dropCounter, lastTime, gameOver, rafId;
 let backgroundImage = null;
 let gameStarted = false;
-let isBossPaused = false; // Флаг для паузы перед боссом
+let isBossPaused = false;
 
 function buildThemePresets() {
   themePresetsBox.innerHTML = '';
@@ -349,7 +349,14 @@ function startBossFight() {
   updateUI();
 }
 
-// === ОЧИСТКА ЛИНИЙ (С УРОНОМ БОССУ) ===
+function triggerBoss() {
+  isBossActive = true;
+  isBossPaused = true;
+  bossHP = BOSS_MAX_HP;
+  updateBossUI();
+  bossModal.classList.remove('hidden');
+}
+
 function clearLines() {
   let cleared = 0;
   for (let y = ROWS - 1; y >= 0; y--) {
@@ -362,27 +369,21 @@ function clearLines() {
 
     // Наносим урон боссу
     if (isBossActive) {
-      bossHP -= cleared * 10; // Каждая линия = 10 урона
+      bossHP -= cleared * 10;
       updateBossUI();
       
       if (bossHP <= 0) {
-        // Босс повержен!
         isBossActive = false;
-        bossScoreTarget += BOSS_TRIGGER_SCORE; // Следующий босс через 2500 очков
-        alert("🎉 БОСС ПОВЕРЖЕН! Вы получаете передышку.");
+        bossScoreTarget += BOSS_TRIGGER_SCORE;
+        alert("🎉 БОСС ПОВЕРЖЕН! Следующий через 2500 очков.");
         recalcSpeed();
         updateUI();
       }
-    } else {
-      // Проверяем, не пора ли вызвать босса
-      if (score >= bossScoreTarget) {
-        isBossActive = true;
-        isBossPaused = true;
-        bossHP = BOSS_MAX_HP;
-        updateBossUI();
-        bossModal.classList.remove('hidden');
-        return; // Прерываем, ждем кнопки "В бой"
-      }
+    }
+
+    // Проверяем, не настало ли время босса (Проверяем сразу после начисления очков)
+    if (!isBossActive && score >= bossScoreTarget) {
+      triggerBoss();
     }
 
     const newLevel = Math.floor(lines / LINES_PER_LEVEL) + 1;
@@ -398,7 +399,6 @@ function recalcSpeed() {
   const targetSpeed = Math.max(speedSettings.min, speedSettings.start - (level - 1) * speedSettings.step);
   let base = Math.max(speedSettings.min, targetSpeed * (1 - progress * 0.25));
   
-  // Если босс активен — ускоряем
   if (isBossActive) {
     base = base / BOSS_SPEED_MULTIPLIER;
   }
@@ -411,7 +411,6 @@ function updateUI() {
   speedEl.textContent = pct + '%';
 }
 
-// ... (функции drawBlock, drawGhostBlock, draw, drawNext остаются без изменений) ...
 function drawBlock(c, x, y, color, size = BLOCK, alpha = 1) {
   c.save(); c.globalAlpha = alpha; c.fillStyle = color;
   c.fillRect(x * size, y * size, size, size);
@@ -442,7 +441,6 @@ function draw() {
     ctx.fillStyle = UI_COLORS.inner; ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
 
-  // Если босс активен, рисуем красную рамку вокруг поля
   if (isBossActive) {
     ctx.strokeStyle = '#e94560';
     ctx.lineWidth = 4;
@@ -491,7 +489,6 @@ function drawNext() {
   nctx.restore();
 }
 
-// === УПРАВЛЕНИЕ (БЛОКИРУЕМ ПРИ ПАУЗЕ БОССА) ===
 function drop() {
   if (!gameStarted || isBossPaused) return;
   current.y++;
@@ -531,11 +528,10 @@ function update(time = 0) {
   if (!gameStarted) return;
   if (gameOver) { draw(); return; }
   
-  // Если пауза перед боссом, просто рисуем и ждем
   if (isBossPaused) {
     draw();
     rafId = requestAnimationFrame(update);
-    lastTime = time; // сбрасываем таймер, чтобы фигура не упала сразу после паузы
+    lastTime = time; 
     return;
   }
 
@@ -550,7 +546,6 @@ function reset() {
   dropInterval = speedSettings.start;
   dropCounter = 0; lastTime = 0; gameOver = false;
   
-  // Сброс босса
   bossScoreTarget = BOSS_TRIGGER_SCORE;
   isBossActive = false;
   isBossPaused = false;
@@ -559,7 +554,6 @@ function reset() {
   next = newPiece(); spawn(); updateUI(); update();
 }
 
-// Кнопка старта боя с боссом
 btnStartBoss.addEventListener('click', () => {
   startBossFight();
 });
