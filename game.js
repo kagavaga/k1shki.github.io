@@ -10,10 +10,9 @@ const LINES_PER_LEVEL = 8;
 const DEFAULT_SPEED = { start: 800, step: 55, min: 90 };
 let speedSettings = { ...DEFAULT_SPEED };
 
-// === НАСТРОЙКИ БОССА ===
 const BOSS_TRIGGER_SCORE = 2500; 
 const BOSS_MAX_HP = 100;
-const BOSS_SPEED_MULTIPLIER = 2.5; // Чуть снизил ускорение, чтобы было реально выжить
+const BOSS_SPEED_MULTIPLIER = 2.5;
 
 let bossScoreTarget = BOSS_TRIGGER_SCORE;
 let bossHP = BOSS_MAX_HP;
@@ -30,7 +29,6 @@ const levelEl = document.getElementById('level');
 const speedEl = document.getElementById('speed');
 const restartBtn = document.getElementById('restart');
 
-// Элементы Босса
 const bossModal = document.getElementById('boss-modal');
 const bossHpFill = document.getElementById('boss-hp-fill');
 const bossHpText = document.getElementById('boss-hp-text');
@@ -332,7 +330,6 @@ function merge(board, piece) {
   });
 }
 
-// === ЛОГИКА БОССА ===
 function updateBossUI() {
   const percent = Math.max(0, (bossHP / BOSS_MAX_HP) * 100);
   bossHpFill.style.width = percent + '%';
@@ -367,11 +364,9 @@ function clearLines() {
     score += points[cleared] * level;
     lines += cleared;
 
-    // Наносим урон боссу
     if (isBossActive) {
       bossHP -= cleared * 10;
       updateBossUI();
-      
       if (bossHP <= 0) {
         isBossActive = false;
         bossScoreTarget += BOSS_TRIGGER_SCORE;
@@ -381,7 +376,6 @@ function clearLines() {
       }
     }
 
-    // Проверяем, не настало ли время босса (Проверяем сразу после начисления очков)
     if (!isBossActive && score >= bossScoreTarget) {
       triggerBoss();
     }
