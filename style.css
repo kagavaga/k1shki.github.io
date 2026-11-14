@@ -93,17 +93,34 @@ body {
 .game-area { display: flex; }
 #board { background: var(--bg-inner); border: 2px solid var(--bg-panel); border-radius: 6px; max-height: 75vh; width: auto; }
 
-.leaderboard-panel { width: 160px; background: var(--bg-panel); padding: 15px; border-radius: 10px; display: flex; flex-direction: column; gap: 10px; }
-.leaderboard-panel h2 { font-size: 16px; color: var(--accent); text-align: center; margin-bottom: 5px; }
+/* === ИЗМЕНЕНО: Широкая таблица лидеров === */
+.leaderboard-panel { 
+  width: 240px; 
+  background: var(--bg-panel); 
+  padding: 15px; 
+  border-radius: 10px; 
+  display: flex; 
+  flex-direction: column; 
+  gap: 10px; 
+}
+.leaderboard-panel h2 { font-size: 18px; color: var(--accent); text-align: center; margin-bottom: 5px; }
 .leaderboard { display: flex; flex-direction: column; gap: 6px; }
-.leader-item { display: flex; justify-content: space-between; align-items: center; background: var(--bg-container); padding: 6px 8px; border-radius: 6px; font-size: 13px; }
-.leader-rank { color: #9aa; font-weight: bold; margin-right: 5px; }
+.leader-item { 
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center; 
+  background: var(--bg-container); 
+  padding: 8px 10px; 
+  border-radius: 6px; 
+  font-size: 14px; /* Чуть крупнее шрифт */
+}
+.leader-rank { color: #9aa; font-weight: bold; margin-right: 8px; }
 .leader-name { flex-grow: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; color: #fff; }
-.leader-score { color: var(--accent); font-weight: bold; }
+.leader-score { color: var(--accent); font-weight: bold; padding-left: 5px; }
 
 .nickname-box { margin-top: auto; display: flex; flex-direction: column; gap: 4px; }
 .nickname-box label { font-size: 11px; color: #9aa; text-transform: uppercase; }
-.nickname-box input { width: 100%; padding: 8px; background: var(--bg-inner); border: 1px solid var(--accent); border-radius: 6px; color: #fff; font-size: 13px; outline: none; }
+.nickname-box input { width: 100%; padding: 10px; background: var(--bg-inner); border: 1px solid var(--accent); border-radius: 6px; color: #fff; font-size: 14px; outline: none; }
 
 .sidebar { display: flex; flex-direction: column; gap: 15px; width: 140px; }
 .panel { background: var(--bg-panel); padding: 10px; border-radius: 8px; text-align: center; }
@@ -166,7 +183,7 @@ body {
   .leaderboard-panel { order: 3; width: 100%; flex-direction: row; flex-wrap: wrap; align-items: center; }
   .leaderboard-panel h2 { width: 100%; margin-bottom: 0; }
   .leaderboard { flex: 1; flex-direction: row; flex-wrap: wrap; }
-  .leader-item { flex: 1 1 40%; }
+  .leader-item { flex: 1 1 45%; }
   .nickname-box { width: 100%; margin-top: 10px; }
   .settings { order: 4; width: 100%; }
   .settings .colors { grid-template-columns: repeat(4, 1fr); }
