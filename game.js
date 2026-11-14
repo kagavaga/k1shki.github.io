@@ -1,3 +1,4 @@
+//test//
 const SUPABASE_URL = 'https://mzqgdpygxxddsfyjiaxk.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_7B-N_d0iNJJzT_0VfZxN_w_lBuo5zLD';
 
