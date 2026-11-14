@@ -162,6 +162,18 @@ body {
 .boss-hp-text { font-size: 14px; color: #fff; font-weight: bold; }
 .boss-desc { font-size: 13px; color: #9aa; margin-bottom: 20px; line-height: 1.5; }
 
+#pause-btn {
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  color: #0f0f1e;
+  font-weight: bold;
+  font-size: 15px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+#pause-btn:hover { filter: brightness(1.1); }
+
 @media (max-width: 1024px), (pointer: coarse) {
   body { padding: 0; overflow-y: auto; align-items: flex-start; }
   .game-container { flex-direction: column; padding: 10px; gap: 10px; border-radius: 0; width: 100%; min-height: 100vh; }

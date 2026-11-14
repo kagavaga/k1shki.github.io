@@ -10,9 +10,8 @@ const LINES_PER_LEVEL = 8;
 const DEFAULT_SPEED = { start: 800, step: 55, min: 90 };
 let speedSettings = { ...DEFAULT_SPEED };
 
-// === НАСТРОЙКИ БОССА ===
-const BOSS_TRIGGER_SCORE = 10000; // Теперь босс появляется каждые 10 000 очков
-const BOSS_MAX_HP = 300;          // Здоровье босса
+const BOSS_TRIGGER_SCORE = 10000; 
+const BOSS_MAX_HP = 300;          
 const BOSS_SPEED_MULTIPLIER = 2.5; 
 
 let bossScoreTarget = BOSS_TRIGGER_SCORE;
@@ -29,6 +28,7 @@ const linesEl = document.getElementById('lines');
 const levelEl = document.getElementById('level');
 const speedEl = document.getElementById('speed');
 const restartBtn = document.getElementById('restart');
+const pauseBtn = document.getElementById('pause-btn'); // Новая кнопка
 
 const bossModal = document.getElementById('boss-modal');
 const bossHpFill = document.getElementById('boss-hp-fill');
@@ -76,6 +76,7 @@ let board, current, next, score, lines, level, dropInterval, dropCounter, lastTi
 let backgroundImage = null;
 let gameStarted = false;
 let isBossPaused = false;
+let isPaused = false; // Флаг ручной паузы
 
 function buildThemePresets() {
   themePresetsBox.innerHTML = '';
@@ -105,6 +106,24 @@ btnPlay.addEventListener('click', () => {
   btnPlay.blur();
   reset();
 });
+
+// === ФУНКЦИЯ ПАУЗЫ ===
+function togglePause() {
+  if (!gameStarted || gameOver) return;
+  isPaused = !isPaused;
+  
+  if (isPaused) {
+    pauseBtn.textContent = "Продолжить (P)";
+    pauseBtn.style.background = "#4ecdc4";
+  } else {
+    pauseBtn.textContent = "Пауза (P)";
+    pauseBtn.style.background = "#ffa94d";
+  }
+  
+  draw(); // Перерисовываем поле, чтобы наложить или убрать надпись "ПАУЗА"
+}
+
+pauseBtn.addEventListener('click', togglePause);
 
 function applyUIColors() {
   const root = document.documentElement;
@@ -366,7 +385,6 @@ function clearLines() {
     lines += cleared;
 
     if (isBossActive) {
-      // Теперь каждая собранная линия наносит 15 урона, чтобы 300 HP не казались вечностью
       bossHP -= cleared * 15;
       updateBossUI();
       if (bossHP <= 0) {
@@ -466,6 +484,13 @@ function draw() {
     ctx.fillStyle = 'rgba(0,0,0,0.75)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = '#e94560'; ctx.font = 'bold 36px sans-serif'; ctx.textAlign = 'center';
     ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2);
+  } else if (isPaused) {
+    // Отрисовка экрана паузы
+    ctx.fillStyle = 'rgba(15, 15, 30, 0.8)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#4ecdc4'; ctx.font = 'bold 40px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('ПАУЗА', canvas.width / 2, canvas.height / 2);
+    ctx.fillStyle = '#9aa'; ctx.font = '16px sans-serif';
+    ctx.fillText('Нажмите P чтобы продолжить', canvas.width / 2, canvas.height / 2 + 30);
   }
 }
 
@@ -486,14 +511,14 @@ function drawNext() {
 }
 
 function drop() {
-  if (!gameStarted || isBossPaused) return;
+  if (!gameStarted || isBossPaused || isPaused) return;
   current.y++;
   if (collide(board, current)) { current.y--; merge(board, current); clearLines(); spawn(); }
   dropCounter = 0;
 }
 
 function hardDrop() {
-  if (!gameStarted || isBossPaused) return;
+  if (!gameStarted || isBossPaused || isPaused) return;
   while (!collide(board, current)) current.y++;
   current.y--; merge(board, current); clearLines(); spawn();
   dropCounter = 0;
@@ -505,10 +530,10 @@ function spawn() {
   drawNext();
 }
 
-function move(dir) { if (gameStarted && !isBossPaused) { current.x += dir; if (collide(board, current)) current.x -= dir; } }
+function move(dir) { if (gameStarted && !isBossPaused && !isPaused) { current.x += dir; if (collide(board, current)) current.x -= dir; } }
 
 function playerRotate() {
-  if (!gameStarted || isBossPaused) return;
+  if (!gameStarted || isBossPaused || isPaused) return;
   const rotated = rotate(current.matrix);
   const old = current.matrix;
   current.matrix = rotated;
@@ -524,7 +549,7 @@ function update(time = 0) {
   if (!gameStarted) return;
   if (gameOver) { draw(); return; }
   
-  if (isBossPaused) {
+  if (isBossPaused || isPaused) {
     draw();
     rafId = requestAnimationFrame(update);
     lastTime = time; 
@@ -545,6 +570,9 @@ function reset() {
   bossScoreTarget = BOSS_TRIGGER_SCORE;
   isBossActive = false;
   isBossPaused = false;
+  isPaused = false;
+  pauseBtn.textContent = "Пауза (P)";
+  pauseBtn.style.background = "#ffa94d";
   bossModal.classList.add('hidden');
   
   next = newPiece(); spawn(); updateUI(); update();
@@ -557,6 +585,14 @@ btnStartBoss.addEventListener('click', () => {
 document.addEventListener('keydown', e => {
   if (document.activeElement === nickInput || document.activeElement === menuNick) return;
   if (!gameStarted || gameOver) return;
+  
+  if (e.key === 'p' || e.key === 'P' || e.key === 'Escape' || e.key === 'з' || e.key === 'З') {
+    togglePause();
+    return;
+  }
+
+  if (isPaused) return;
+
   if (e.key === 'ArrowLeft') move(-1);
   else if (e.key === 'ArrowRight') move(1);
   else if (e.key === 'ArrowDown') { drop(); }
