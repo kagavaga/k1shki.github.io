@@ -21,6 +21,7 @@ body {
   overflow-x: hidden;
 }
 
+/* === ГЛАВНОЕ МЕНЮ === */
 .main-menu {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
@@ -75,6 +76,7 @@ body {
 .btn-play:hover { filter: brightness(1.2); transform: scale(1.02); }
 .menu-footer { margin-top: 25px; font-size: 11px; color: #666; }
 
+/* === ИНТЕРФЕЙС ИГРЫ === */
 .game-container {
   display: flex;
   gap: 20px;
@@ -111,7 +113,11 @@ body {
 .panel h3 { font-size: 12px; text-transform: uppercase; color: #9aa; margin-bottom: 5px; }
 #next { background: var(--bg-inner); border-radius: 4px; max-width: 100%; }
 #score, #lines, #level, #speed { font-size: 22px; font-weight: bold; color: var(--accent); margin-bottom: 8px; }
+
 #restart { padding: 12px; background: #e94560; border: none; border-radius: 8px; color: white; font-weight: bold; font-size: 15px; cursor: pointer; margin-top: auto;}
+#pause-btn { padding: 12px; border: none; border-radius: 8px; color: #0f0f1e; font-weight: bold; font-size: 15px; cursor: pointer; transition: 0.2s; }
+#pause-btn:hover { filter: brightness(1.1); }
+
 .controls { font-size: 11px; color: #9aa; line-height: 1.7; text-align: center; }
 
 .settings { width: 220px; background: var(--bg-panel); padding: 15px; border-radius: 10px; display: flex; flex-direction: column; gap: 12px; max-height: 640px; overflow-y: auto; }
@@ -140,6 +146,7 @@ body {
 .mob-btn:active { background: var(--accent); color: var(--bg-panel); }
 .mob-btn.wide { grid-column: span 2; font-size: 16px; }
 
+/* === СТИЛИ ДЛЯ БОССА === */
 .boss-modal {
   position: fixed; top: 0; left: 0; right: 0; bottom: 0;
   background: rgba(15, 15, 30, 0.9); backdrop-filter: blur(5px);
@@ -162,17 +169,45 @@ body {
 .boss-hp-text { font-size: 14px; color: #fff; font-weight: bold; }
 .boss-desc { font-size: 13px; color: #9aa; margin-bottom: 20px; line-height: 1.5; }
 
-#pause-btn {
-  padding: 12px;
-  border: none;
-  border-radius: 8px;
-  color: #0f0f1e;
-  font-weight: bold;
-  font-size: 15px;
-  cursor: pointer;
-  transition: 0.2s;
+/* =========================================
+   ЭФФЕКТ СТЕКЛА (Когда загружен фон)
+   ========================================= */
+body.has-bg {
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
 }
-#pause-btn:hover { filter: brightness(1.1); }
+
+body.has-bg .game-container,
+body.has-bg .main-menu .menu-content,
+body.has-bg .panel,
+body.has-bg .leaderboard-panel,
+body.has-bg .settings,
+body.has-bg .boss-content,
+body.has-bg .mobile-controls .mob-btn {
+  background: rgba(22, 33, 62, 0.6) !important; 
+  backdrop-filter: blur(12px); 
+  -webkit-backdrop-filter: blur(12px); 
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+}
+
+body.has-bg .main-menu {
+  background: rgba(15, 15, 30, 0.6) !important;
+  backdrop-filter: blur(8px);
+}
+
+body.has-bg .leader-item,
+body.has-bg .color-item,
+body.has-bg input[type="text"],
+body.has-bg #next {
+  background: rgba(15, 15, 30, 0.5) !important;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+body.has-bg #board {
+  background: rgba(15, 15, 30, 0.4) !important;
+}
 
 @media (max-width: 1024px), (pointer: coarse) {
   body { padding: 0; overflow-y: auto; align-items: flex-start; }

@@ -79,8 +79,23 @@
         <div id="speed">100%</div>
       </div>
       <button id="restart">Заново</button>
-      <!-- НОВАЯ КНОПКА ПАУЗЫ -->
       <button id="pause-btn" style="margin-top: 10px; background: #ffa94d;">Пауза (P)</button>
+      
+      <!-- ПАНЕЛЬ АДМИНА (скрыта по умолчанию) -->
+      <div id="admin-panel" style="display: none; margin-top: 15px; padding: 10px; border: 2px dashed #e94560; border-radius: 8px; background: rgba(233, 69, 96, 0.1);">
+        <h3 style="color: #e94560; margin-bottom: 8px;">👑 АДМИН</h3>
+        <button class="admin-btn" id="admin-clear">Очистить поле</button>
+        <button class="admin-btn" id="admin-squares">Только квадраты</button>
+        
+        <input type="text" id="admin-target-nick" placeholder="Ник цели" style="width: 100%; padding: 5px; margin-top: 8px; border-radius: 4px; border: 1px solid #e94560; background: #0f0f1e; color: #fff; font-size: 12px;">
+        
+        <input type="number" id="admin-set-score" placeholder="Очки" style="width: 100%; padding: 5px; margin-top: 5px; border-radius: 4px; border: 1px solid #e94560; background: #0f0f1e; color: #fff; font-size: 12px;">
+        <button class="admin-btn" id="admin-apply-score" style="margin-top: 5px;">Выдать очки</button>
+        
+        <input type="text" id="admin-new-nick" placeholder="Новый ник" style="width: 100%; padding: 5px; margin-top: 5px; border-radius: 4px; border: 1px solid #e94560; background: #0f0f1e; color: #fff; font-size: 12px;">
+        <button class="admin-btn" id="admin-apply-nick" style="margin-top: 5px;">Сменить ник</button>
+      </div>
+
       <div class="controls">← → двигать<br>↑ поворот<br>↓ вниз<br>Space — сброс</div>
     </div>
 
@@ -120,7 +135,6 @@
       </div>
       <div class="section" style="margin-top: auto;">
         <button id="settings-reset" class="small-btn">Сбросить всё</button>
-        <button id="leaderboard-reset" class="small-btn" style="border-color: #e94560; color: #e94560; margin-top: 5px;">Очистить лидеров</button>
       </div>
     </div>
   </div>

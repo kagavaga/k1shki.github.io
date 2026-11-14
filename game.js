@@ -1,4 +1,4 @@
-const SUPABASE_URL = 'https://mzqgdpygxxddsfyjiaxk.supabase.co';
+const SUPABASE_URL = 'https://mzqgdpygxxddsfyjiaxk.supabase.co/';
 const SUPABASE_ANON_KEY = 'sb_publishable_7B-N_d0iNJJzT_0VfZxN_w_lBuo5zLD';
 
 const db = window.supabase.createClient(SUPABASE_URL.trim(), SUPABASE_ANON_KEY.trim());
@@ -11,8 +11,7 @@ const DEFAULT_SPEED = { start: 800, step: 55, min: 90 };
 let speedSettings = { ...DEFAULT_SPEED };
 
 const BOSS_TRIGGER_SCORE = 10000; 
-const BOSS_MAX_HP = 300;          
-const BOSS_SPEED_MULTIPLIER = 2.5; 
+const BOSS_MAX_HP = 400; 
 
 let bossScoreTarget = BOSS_TRIGGER_SCORE;
 let bossHP = BOSS_MAX_HP;
@@ -28,7 +27,7 @@ const linesEl = document.getElementById('lines');
 const levelEl = document.getElementById('level');
 const speedEl = document.getElementById('speed');
 const restartBtn = document.getElementById('restart');
-const pauseBtn = document.getElementById('pause-btn'); // Новая кнопка
+const pauseBtn = document.getElementById('pause-btn');
 
 const bossModal = document.getElementById('boss-modal');
 const bossHpFill = document.getElementById('boss-hp-fill');
@@ -48,9 +47,18 @@ const SHAPES = {
   S: [[0,1,1],[1,1,0]], Z: [[1,1,0],[0,1,1]], J: [[1,0,0],[1,1,1]], L: [[0,0,1],[1,1,1]]
 };
 
+const BOSS_SHAPES = {
+  PLUS: [[0,1,0],[1,1,1],[0,1,0]],
+  T: [[1,1,1],[0,1,0],[0,1,0]],
+  P: [[1,1,1],[1,1,0],[1,0,0]],
+  O_PIMPLE: [[1,1],[1,1],[1,0]],
+  L_SHAPE: [[1,0],[1,1]]
+};
+
 const DEFAULT_PIECE_COLORS = {
   I: '#4ecdc4', O: '#ffe66d', T: '#c44dff',
-  S: '#4dff88', Z: '#ff4d6d', J: '#4d7cff', L: '#ffa94d'
+  S: '#4dff88', Z: '#ff4d6d', J: '#4d7cff', L: '#ffa94d',
+  BOSS: '#e94560' 
 };
 
 const THEME_PRESETS = [
@@ -76,7 +84,7 @@ let board, current, next, score, lines, level, dropInterval, dropCounter, lastTi
 let backgroundImage = null;
 let gameStarted = false;
 let isBossPaused = false;
-let isPaused = false; // Флаг ручной паузы
+let isPaused = false;
 
 function buildThemePresets() {
   themePresetsBox.innerHTML = '';
@@ -107,7 +115,6 @@ btnPlay.addEventListener('click', () => {
   reset();
 });
 
-// === ФУНКЦИЯ ПАУЗЫ ===
 function togglePause() {
   if (!gameStarted || gameOver) return;
   isPaused = !isPaused;
@@ -119,8 +126,7 @@ function togglePause() {
     pauseBtn.textContent = "Пауза (P)";
     pauseBtn.style.background = "#ffa94d";
   }
-  
-  draw(); // Перерисовываем поле, чтобы наложить или убрать надпись "ПАУЗА"
+  draw(); 
 }
 
 pauseBtn.addEventListener('click', togglePause);
@@ -155,19 +161,36 @@ function loadSettings() {
     if (uiRaw) UI_COLORS = { ...UI_COLORS, ...JSON.parse(uiRaw) };
     const speedRaw = localStorage.getItem('tetris-speed');
     if (speedRaw) speedSettings = { ...DEFAULT_SPEED, ...JSON.parse(speedRaw) };
+    
     const bgRaw = localStorage.getItem('tetris-bg');
     if (bgRaw) {
       const img = new Image();
-      img.onload = () => { backgroundImage = img; updateBgStatus(); draw(); };
+      img.onload = () => { 
+        backgroundImage = img; 
+        applyBackgroundToUI(img.src);
+        updateBgStatus(); 
+        draw(); 
+      };
       img.onerror = () => localStorage.removeItem('tetris-bg');
       img.src = bgRaw;
     }
+    
     const savedNick = localStorage.getItem('tetris-nick');
     if (savedNick) {
       menuNick.value = savedNick;
       nickInput.value = savedNick;
     }
   } catch(e) {}
+}
+
+function applyBackgroundToUI(src) {
+  if (src) {
+    document.body.style.backgroundImage = `url(${src})`;
+    document.body.classList.add('has-bg');
+  } else {
+    document.body.style.backgroundImage = 'none';
+    document.body.classList.remove('has-bg');
+  }
 }
 
 function updateBgStatus() {
@@ -223,16 +246,14 @@ async function addScoreToLeaderboard(finalScore) {
   await fetchLeaderboard();
 }
 
-document.getElementById('leaderboard-reset').addEventListener('click', async () => {
-  if (!confirm('Очистить таблицу лидеров?')) return;
-  await db.from('leaderboard').delete().neq('id', 0); 
-  await fetchLeaderboard();
-});
+// Код для очистки лидеров удален, так как кнопки больше нет
 
 const colorsPanel = document.getElementById('colors-panel');
 function buildColorsPanel() {
   colorsPanel.innerHTML = '';
-  Object.keys(DEFAULT_PIECE_COLORS).forEach(type => {
+  const configurableColors = Object.keys(DEFAULT_PIECE_COLORS).filter(k => k !== 'BOSS');
+  
+  configurableColors.forEach(type => {
     const item = document.createElement('div');
     item.className = 'color-item';
     const input = document.createElement('input');
@@ -294,13 +315,25 @@ document.getElementById('bg-upload').addEventListener('change', (e) => {
   const reader = new FileReader();
   reader.onload = (ev) => {
     const img = new Image();
-    img.onload = () => { backgroundImage = img; updateBgStatus(); saveSettings(); draw(); };
+    img.onload = () => { 
+      backgroundImage = img; 
+      applyBackgroundToUI(img.src);
+      updateBgStatus(); 
+      saveSettings(); 
+      draw(); 
+    };
     img.src = ev.target.result;
   };
   reader.readAsDataURL(file); e.target.value = '';
 });
 
-document.getElementById('bg-reset').addEventListener('click', () => { backgroundImage = null; updateBgStatus(); saveSettings(); draw(); });
+document.getElementById('bg-reset').addEventListener('click', () => { 
+  backgroundImage = null; 
+  applyBackgroundToUI(null);
+  updateBgStatus(); 
+  saveSettings(); 
+  draw(); 
+});
 
 document.getElementById('settings-reset').addEventListener('click', () => {
   if (!confirm('Сбросить все настройки?')) return;
@@ -308,12 +341,25 @@ document.getElementById('settings-reset').addEventListener('click', () => {
   Object.keys(DEFAULT_UI_COLORS).forEach(k => UI_COLORS[k] = DEFAULT_UI_COLORS[k].value);
   speedSettings = { ...DEFAULT_SPEED };
   backgroundImage = null;
+  applyBackgroundToUI(null);
   applyUIColors(); updateBgStatus(); buildColorsPanel(); buildUIColorsPanel(); updateSpeedUI();
   saveSettings(); if (gameStarted) reset();
 });
 
 function createBoard() { return Array.from({length: ROWS}, () => Array(COLS).fill(null)); }
+
 function newPiece() {
+  if (isBossActive) {
+    const keys = Object.keys(BOSS_SHAPES);
+    const type = keys[Math.floor(Math.random() * keys.length)];
+    return { 
+      type: 'BOSS', 
+      matrix: BOSS_SHAPES[type].map(r => [...r]), 
+      x: Math.floor((COLS - BOSS_SHAPES[type][0].length) / 2), 
+      y: 0 
+    };
+  }
+
   const keys = Object.keys(SHAPES);
   const type = keys[Math.floor(Math.random() * keys.length)];
   return { type, matrix: SHAPES[type].map(r => [...r]), x: Math.floor((COLS - SHAPES[type][0].length) / 2), y: 0 };
@@ -362,8 +408,22 @@ function startBossFight() {
   isBossPaused = false;
   bossModal.classList.add('hidden');
   updateBossUI();
+  
+  board = createBoard();
+  
+  const keys = Object.keys(BOSS_SHAPES);
+  const type = keys[Math.floor(Math.random() * keys.length)];
+  next = { 
+    type: 'BOSS', 
+    matrix: BOSS_SHAPES[type].map(r => [...r]), 
+    x: Math.floor((COLS - BOSS_SHAPES[type][0].length) / 2), 
+    y: 0 
+  };
+  
+  drawNext();
   recalcSpeed();
   updateUI();
+  draw(); 
 }
 
 function triggerBoss() {
@@ -411,12 +471,7 @@ function recalcSpeed() {
   if (!dropInterval) dropInterval = speedSettings.start;
   const progress = (lines % LINES_PER_LEVEL) / LINES_PER_LEVEL;
   const targetSpeed = Math.max(speedSettings.min, speedSettings.start - (level - 1) * speedSettings.step);
-  let base = Math.max(speedSettings.min, targetSpeed * (1 - progress * 0.25));
-  
-  if (isBossActive) {
-    base = base / BOSS_SPEED_MULTIPLIER;
-  }
-  return Math.max(speedSettings.min, base);
+  return Math.max(speedSettings.min, targetSpeed * (1 - progress * 0.25));
 }
 
 function updateUI() {
@@ -466,17 +521,19 @@ function draw() {
   for (let x = 0; x <= COLS; x++) { ctx.beginPath(); ctx.moveTo(x * BLOCK, 0); ctx.lineTo(x * BLOCK, canvas.height); ctx.stroke(); }
   for (let y = 0; y <= ROWS; y++) { ctx.beginPath(); ctx.moveTo(0, y * BLOCK); ctx.lineTo(canvas.width, y * BLOCK); ctx.stroke(); }
 
-  board.forEach((row, y) => row.forEach((type, x) => { if (type) drawBlock(ctx, x, y, PIECE_COLORS[type]); }));
+  board.forEach((row, y) => row.forEach((type, x) => { 
+    if (type) drawBlock(ctx, x, y, PIECE_COLORS[type] || PIECE_COLORS.BOSS); 
+  }));
 
   if (current) {
     const ghostY = getGhostY();
     if (ghostY > current.y) {
       current.matrix.forEach((row, y) => row.forEach((v, x) => {
-        if (v) drawGhostBlock(ctx, current.x + x, ghostY + y, PIECE_COLORS[current.type]);
+        if (v) drawGhostBlock(ctx, current.x + x, ghostY + y, PIECE_COLORS[current.type] || PIECE_COLORS.BOSS);
       }));
     }
     current.matrix.forEach((row, y) => row.forEach((v, x) => {
-      if (v) drawBlock(ctx, current.x + x, current.y + y, PIECE_COLORS[current.type]);
+      if (v) drawBlock(ctx, current.x + x, current.y + y, PIECE_COLORS[current.type] || PIECE_COLORS.BOSS);
     }));
   }
 
@@ -485,7 +542,6 @@ function draw() {
     ctx.fillStyle = '#e94560'; ctx.font = 'bold 36px sans-serif'; ctx.textAlign = 'center';
     ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2);
   } else if (isPaused) {
-    // Отрисовка экрана паузы
     ctx.fillStyle = 'rgba(15, 15, 30, 0.8)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = '#4ecdc4'; ctx.font = 'bold 40px sans-serif'; ctx.textAlign = 'center';
     ctx.fillText('ПАУЗА', canvas.width / 2, canvas.height / 2);
@@ -503,7 +559,8 @@ function drawNext() {
   nctx.save(); nctx.translate(offX, offY);
   m.forEach((row, y) => row.forEach((v, x) => {
     if (v) {
-      nctx.fillStyle = PIECE_COLORS[next.type]; nctx.fillRect(x * size, y * size, size, size);
+      nctx.fillStyle = PIECE_COLORS[next.type] || PIECE_COLORS.BOSS; 
+      nctx.fillRect(x * size, y * size, size, size);
       nctx.strokeStyle = 'rgba(0,0,0,0.4)'; nctx.strokeRect(x * size, y * size, size, size);
     }
   }));
@@ -525,7 +582,8 @@ function hardDrop() {
 }
 
 function spawn() {
-  current = next; next = newPiece();
+  current = next; 
+  next = newPiece();
   if (collide(board, current)) { gameOver = true; addScoreToLeaderboard(score); }
   drawNext();
 }
