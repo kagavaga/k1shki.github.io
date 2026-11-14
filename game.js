@@ -1,5 +1,5 @@
-const SUPABASE_URL = 'https://mzqgdpygxxddsfyjiaxk.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_7B-N_d0iNJJzT_0VfZxN_w_lBuo5zLD';
+const SUPABASE_URL = 'ССЫЛКА_СЮДА';
+const SUPABASE_ANON_KEY = 'КЛЮЧ_СЮДА';
 
 const db = window.supabase.createClient(SUPABASE_URL.trim(), SUPABASE_ANON_KEY.trim());
 
@@ -10,9 +10,10 @@ const LINES_PER_LEVEL = 8;
 const DEFAULT_SPEED = { start: 800, step: 55, min: 90 };
 let speedSettings = { ...DEFAULT_SPEED };
 
-const BOSS_TRIGGER_SCORE = 2500; 
-const BOSS_MAX_HP = 100;
-const BOSS_SPEED_MULTIPLIER = 2.5;
+// === НАСТРОЙКИ БОССА ===
+const BOSS_TRIGGER_SCORE = 10000; // Теперь босс появляется каждые 10 000 очков
+const BOSS_MAX_HP = 300;          // Здоровье босса
+const BOSS_SPEED_MULTIPLIER = 2.5; 
 
 let bossScoreTarget = BOSS_TRIGGER_SCORE;
 let bossHP = BOSS_MAX_HP;
@@ -365,12 +366,13 @@ function clearLines() {
     lines += cleared;
 
     if (isBossActive) {
-      bossHP -= cleared * 10;
+      // Теперь каждая собранная линия наносит 15 урона, чтобы 300 HP не казались вечностью
+      bossHP -= cleared * 15;
       updateBossUI();
       if (bossHP <= 0) {
         isBossActive = false;
         bossScoreTarget += BOSS_TRIGGER_SCORE;
-        alert("🎉 БОСС ПОВЕРЖЕН! Следующий через 2500 очков.");
+        alert("🎉 БОСС ПОВЕРЖЕН! Следующий через 10 000 очков.");
         recalcSpeed();
         updateUI();
       }
