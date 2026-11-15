@@ -16,6 +16,8 @@ const BOSS_MAX_HP = 400;
 let bossScoreTarget = BOSS_TRIGGER_SCORE;
 let bossHP = BOSS_MAX_HP;
 let isBossActive = false;
+let isAdmin = false;
+let cheatSquaresActive = false;
 
 const canvas = document.getElementById('board');
 const ctx = canvas.getContext('2d');
@@ -28,6 +30,11 @@ const levelEl = document.getElementById('level');
 const speedEl = document.getElementById('speed');
 const restartBtn = document.getElementById('restart');
 const pauseBtn = document.getElementById('pause-btn');
+
+const adminPanel = document.getElementById('admin-panel');
+const adminTargetNick = document.getElementById('admin-target-nick');
+const adminSetScore = document.getElementById('admin-set-score');
+const adminNewNick = document.getElementById('admin-new-nick');
 
 const bossModal = document.getElementById('boss-modal');
 const bossHpFill = document.getElementById('boss-hp-fill');
@@ -105,14 +112,36 @@ function buildThemePresets() {
   });
 }
 
+function checkAdmin(nick) {
+  if (nick === 'ADM1N') {
+    isAdmin = true;
+    adminPanel.style.display = 'block';
+  } else {
+    isAdmin = false;
+    adminPanel.style.display = 'none';
+  }
+}
+
 btnPlay.addEventListener('click', () => {
   const nick = menuNick.value.trim() || 'Игрок';
   nickInput.value = nick;
   localStorage.setItem('tetris-nick', nick);
+  checkAdmin(nick);
   mainMenu.classList.add('hidden');
   gameStarted = true;
   btnPlay.blur();
   reset();
+});
+
+nickInput.addEventListener('input', () => {
+  localStorage.setItem('tetris-nick', nickInput.value.trim());
+  if (menuNick.value !== nickInput.value) menuNick.value = nickInput.value;
+  checkAdmin(nickInput.value.trim());
+});
+
+menuNick.addEventListener('input', () => {
+  localStorage.setItem('tetris-nick', menuNick.value.trim());
+  if (nickInput.value !== menuNick.value) nickInput.value = menuNick.value;
 });
 
 function togglePause() {
@@ -179,6 +208,7 @@ function loadSettings() {
     if (savedNick) {
       menuNick.value = savedNick;
       nickInput.value = savedNick;
+      checkAdmin(savedNick);
     }
   } catch(e) {}
 }
@@ -246,7 +276,47 @@ async function addScoreToLeaderboard(finalScore) {
   await fetchLeaderboard();
 }
 
-// Код для очистки лидеров удален, так как кнопки больше нет
+document.getElementById('admin-clear').addEventListener('click', () => {
+  if (!isAdmin) return;
+  for (let x = 0; x < COLS; x++) board[ROWS - 1][x] = null;
+  score += 100;
+  updateUI();
+  draw();
+});
+
+document.getElementById('admin-squares').addEventListener('click', () => {
+  if (!isAdmin) return;
+  cheatSquaresActive = !cheatSquaresActive;
+  document.getElementById('admin-squares').textContent = cheatSquaresActive ? "Выключить квадраты" : "Только квадраты";
+});
+
+document.getElementById('admin-apply-score').addEventListener('click', async () => {
+  if (!isAdmin) return;
+  const target = adminTargetNick.value.trim();
+  const scoreVal = parseInt(adminSetScore.value);
+  if (!target || isNaN(scoreVal)) return alert("Введи ник и очки!");
+  
+  const { data } = await db.from('leaderboard').select('score').eq('name', target).maybeSingle();
+  if (data) {
+    await db.from('leaderboard').update({ score: scoreVal }).eq('name', target);
+  } else {
+    await db.from('leaderboard').insert({ name: target, score: scoreVal });
+  }
+  fetchLeaderboard();
+  alert(`Очки ${scoreVal} выданы игроку ${target}`);
+});
+
+document.getElementById('admin-apply-nick').addEventListener('click', async () => {
+  if (!isAdmin) return;
+  const target = adminTargetNick.value.trim();
+  const newNick = adminNewNick.value.trim();
+  if (!target || !newNick) return alert("Введи старый и новый ник!");
+  
+  await db.from('leaderboard').update({ name: newNick }).eq('name', target);
+  fetchLeaderboard();
+  alert(`Ник ${target} изменен на ${newNick}`);
+});
+
 
 const colorsPanel = document.getElementById('colors-panel');
 function buildColorsPanel() {
@@ -349,6 +419,10 @@ document.getElementById('settings-reset').addEventListener('click', () => {
 function createBoard() { return Array.from({length: ROWS}, () => Array(COLS).fill(null)); }
 
 function newPiece() {
+  if (cheatSquaresActive) {
+    return { type: 'O', matrix: SHAPES['O'].map(r => [...r]), x: Math.floor((COLS - 2) / 2), y: 0 };
+  }
+
   if (isBossActive) {
     const keys = Object.keys(BOSS_SHAPES);
     const type = keys[Math.floor(Math.random() * keys.length)];
@@ -641,9 +715,39 @@ btnStartBoss.addEventListener('click', () => {
 });
 
 document.addEventListener('keydown', e => {
-  if (document.activeElement === nickInput || document.activeElement === menuNick) return;
+  if (document.activeElement === nickInput || document.activeElement === menuNick || document.activeElement === adminTargetNick || document.activeElement === adminSetScore || document.activeElement === adminNewNick) return;
   if (!gameStarted || gameOver) return;
   
+  // ЧИТЫ (КЛАВИШИ)
+  if (isAdmin) {
+    if (e.key === 'q' || e.key === 'Q' || e.key === 'й' || e.key === 'Й') {
+      board.pop();
+      board.unshift(Array(COLS).fill(null));
+      score += 100;
+      updateUI();
+      draw();
+      return;
+    }
+    if (e.key === 'w' || e.key === 'W' || e.key === 'ц' || e.key === 'Ц') {
+      let count = 0;
+      for (let y = 0; y < ROWS; y++) {
+        for (let x = 0; x < COLS; x++) {
+          if (board[y][x]) count++;
+          board[y][x] = null;
+        }
+      }
+      score += count * 10;
+      updateUI();
+      draw();
+      return;
+    }
+    if (e.key === 'e' || e.key === 'E' || e.key === 'у' || e.key === 'У') {
+      cheatSquaresActive = !cheatSquaresActive;
+      document.getElementById('admin-squares').textContent = cheatSquaresActive ? "Выключить квадраты" : "Только квадраты";
+      return;
+    }
+  }
+
   if (e.key === 'p' || e.key === 'P' || e.key === 'Escape' || e.key === 'з' || e.key === 'З') {
     togglePause();
     return;
@@ -672,14 +776,6 @@ if (!isTouchDevice) {
 }
 
 restartBtn.addEventListener('click', () => { if (gameStarted) reset(); });
-nickInput.addEventListener('input', () => {
-  localStorage.setItem('tetris-nick', nickInput.value.trim());
-  if (menuNick.value !== nickInput.value) menuNick.value = nickInput.value;
-});
-menuNick.addEventListener('input', () => {
-  localStorage.setItem('tetris-nick', menuNick.value.trim());
-  if (nickInput.value !== menuNick.value) nickInput.value = menuNick.value;
-});
 
 loadSettings();
 applyUIColors();
