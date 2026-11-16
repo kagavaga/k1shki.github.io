@@ -10,10 +10,11 @@ const LINES_PER_LEVEL = 8;
 const DEFAULT_SPEED = { start: 800, step: 55, min: 90 };
 let speedSettings = { ...DEFAULT_SPEED };
 
-const BOSS_TRIGGER_SCORE = 10000; 
+const FIRST_BOSS_SCORE = 10000; 
+const BOSS_SCORE_AFTER_WIN = 25000; 
 const BOSS_MAX_HP = 400; 
 
-let bossScoreTarget = BOSS_TRIGGER_SCORE;
+let bossScoreTarget = FIRST_BOSS_SCORE;
 let bossHP = BOSS_MAX_HP;
 let isBossActive = false;
 
@@ -23,6 +24,16 @@ let cheatSquaresActive = false;
 let particles = [];
 let trailParticles = [];
 let droppingPiece = null; 
+let hue = 0;
+
+// === СЕКРЕТНЫЙ КОД 67 ===
+let secretCodeBuffer = "";
+let secretShapeActive = false;
+
+// === ПАСХАЛКА ===
+let leaderboardClicks = 0;
+let heartClicks = 0;
+let isEasterEggOpen = false; 
 
 const canvas = document.getElementById('board');
 const ctx = canvas.getContext('2d');
@@ -36,14 +47,16 @@ const speedEl = document.getElementById('speed');
 const restartBtn = document.getElementById('restart');
 const pauseBtn = document.getElementById('pause-btn');
 
+const bossHud = document.getElementById('boss-hud');
+const bossHudFill = document.getElementById('boss-hud-fill');
+const bossHudText = document.getElementById('boss-hud-text');
+
 const adminPanel = document.getElementById('admin-panel');
 const adminTargetNick = document.getElementById('admin-target-nick');
 const adminSetScore = document.getElementById('admin-set-score');
 const adminNewNick = document.getElementById('admin-new-nick');
 
 const bossModal = document.getElementById('boss-modal');
-const bossHpFill = document.getElementById('boss-hp-fill');
-const bossHpText = document.getElementById('boss-hp-text');
 const btnStartBoss = document.getElementById('btn-start-boss');
 
 const nickInput = document.getElementById('player-nick');
@@ -59,18 +72,37 @@ const SHAPES = {
   S: [[0,1,1],[1,1,0]], Z: [[1,1,0],[0,1,1]], J: [[1,0,0],[1,1,1]], L: [[0,0,1],[1,1,1]]
 };
 
+const CHEAT_SHAPES = {
+  BLOCK_2x5: [[1,1],[1,1],[1,1],[1,1],[1,1]],
+  SECRET: [
+    [0,0,1,1,0,0],
+    [0,0,1,1,0,0],
+    [0,0,1,1,0,0],
+    [0,0,1,1,0,0],
+    [0,0,1,1,0,0],
+    [0,0,1,1,0,0],
+    [1,1,0,0,1,1],
+    [1,1,0,0,1,1]
+  ]
+};
+
 const BOSS_SHAPES = {
   PLUS: [[0,1,0],[1,1,1],[0,1,0]],
-  T: [[1,1,1],[0,1,0],[0,1,0]],
-  P: [[1,1,1],[1,1,0],[1,0,0]],
+  DOT: [[1]],
   O_PIMPLE: [[1,1],[1,1],[1,0]],
-  L_SHAPE: [[1,0],[1,1]]
+  O_PIMPLE_MIRROR: [[1,1],[1,1],[0,1]],
+  P_SHAPE: [[1,1,1],[1,0,0],[1,0,0]],
+  LINE_3: [[1,1,1]],
+  LINE_4: [[1,1,1,1]],
+  T_SHAPE: [[1,1,1],[0,1,0],[0,1,0]],
+  SMALL_G: [[1,0],[1,1]]
 };
 
 const DEFAULT_PIECE_COLORS = {
   I: '#4ecdc4', O: '#ffe66d', T: '#c44dff',
   S: '#4dff88', Z: '#ff4d6d', J: '#4d7cff', L: '#ffa94d',
-  BOSS: '#e94560' 
+  BOSS: '#e94560',
+  RGB: '#ff00ff' 
 };
 
 const THEME_PRESETS = [
@@ -94,6 +126,8 @@ Object.keys(DEFAULT_UI_COLORS).forEach(k => UI_COLORS[k] = DEFAULT_UI_COLORS[k].
 
 let board, current, next, score, lines, level, dropInterval, dropCounter, lastTime, gameOver, rafId;
 let backgroundImage = null;
+let uiOpacity = 75;
+let useBgInBoard = true;
 let gameStarted = false;
 let isBossPaused = false;
 let isPaused = false;
@@ -155,15 +189,27 @@ function togglePause() {
   
   if (isPaused) {
     pauseBtn.textContent = "Продолжить (P)";
-    pauseBtn.style.background = "#4ecdc4";
   } else {
     pauseBtn.textContent = "Пауза (P)";
-    pauseBtn.style.background = "#ffa94d";
   }
   draw(); 
 }
 
 pauseBtn.addEventListener('click', togglePause);
+
+function hexToRgba(hex, alpha) {
+  let r = 0, g = 0, b = 0;
+  if (hex.length === 4) {
+    r = parseInt(hex[1] + hex[1], 16);
+    g = parseInt(hex[2] + hex[2], 16);
+    b = parseInt(hex[3] + hex[3], 16);
+  } else if (hex.length === 7) {
+    r = parseInt(hex.substring(1, 3), 16);
+    g = parseInt(hex.substring(3, 5), 16);
+    b = parseInt(hex.substring(5, 7), 16);
+  }
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
 
 function applyUIColors() {
   const root = document.documentElement;
@@ -172,6 +218,27 @@ function applyUIColors() {
   root.style.setProperty('--bg-panel', UI_COLORS.panel);
   root.style.setProperty('--bg-inner', UI_COLORS.inner);
   root.style.setProperty('--accent', UI_COLORS.accent);
+  
+  applyUiOpacity(uiOpacity);
+  draw();
+}
+
+function applyUiOpacity(val) {
+  uiOpacity = val;
+  if (!backgroundImage) return; 
+
+  const percent = val / 100;
+  const panelColor = hexToRgba(UI_COLORS.panel, percent);
+  const containerColor = hexToRgba(UI_COLORS.container, percent);
+
+  const panels = document.querySelectorAll('.game-container, .menu-content, .panel, .leaderboard-panel, .settings, .boss-content');
+  panels.forEach(el => { if (el) el.style.setProperty('background-color', panelColor, 'important'); });
+
+  const containers = document.querySelectorAll('.leader-item, .color-item, input[type="text"], #next');
+  containers.forEach(el => { if (el) el.style.setProperty('background-color', containerColor, 'important'); });
+
+  const mainContainer = document.querySelector('.game-container');
+  if(mainContainer) mainContainer.style.setProperty('background-color', containerColor, 'important');
 }
 
 function saveSettings() {
@@ -179,6 +246,8 @@ function saveSettings() {
     localStorage.setItem('tetris-piece-colors', JSON.stringify(PIECE_COLORS));
     localStorage.setItem('tetris-ui-colors', JSON.stringify(UI_COLORS));
     localStorage.setItem('tetris-speed', JSON.stringify(speedSettings));
+    localStorage.setItem('tetris-ui-opacity', uiOpacity);
+    localStorage.setItem('tetris-use-bg-in-board', useBgInBoard);
     if (backgroundImage && backgroundImage.src) {
       localStorage.setItem('tetris-bg', backgroundImage.src);
     } else {
@@ -195,6 +264,22 @@ function loadSettings() {
     if (uiRaw) UI_COLORS = { ...UI_COLORS, ...JSON.parse(uiRaw) };
     const speedRaw = localStorage.getItem('tetris-speed');
     if (speedRaw) speedSettings = { ...DEFAULT_SPEED, ...JSON.parse(speedRaw) };
+
+    const uiOpacityRaw = localStorage.getItem('tetris-ui-opacity');
+    if (uiOpacityRaw) {
+      uiOpacity = parseInt(uiOpacityRaw);
+      const slider = document.getElementById('set-ui-opacity');
+      const valEl = document.getElementById('val-ui-opacity');
+      if(slider) slider.value = uiOpacity;
+      if(valEl) valEl.textContent = uiOpacity;
+    }
+
+    const useBgRaw = localStorage.getItem('tetris-use-bg-in-board');
+    if (useBgRaw !== null) {
+      useBgInBoard = useBgRaw === 'true';
+      const cb = document.getElementById('use-bg-in-board');
+      if(cb) cb.checked = useBgInBoard;
+    }
     
     const bgRaw = localStorage.getItem('tetris-bg');
     if (bgRaw) {
@@ -222,16 +307,20 @@ function applyBackgroundToUI(src) {
   if (src) {
     document.body.style.backgroundImage = `url(${src})`;
     document.body.classList.add('has-bg');
+    applyUiOpacity(uiOpacity);
   } else {
     document.body.style.backgroundImage = 'none';
     document.body.classList.remove('has-bg');
+    document.querySelectorAll('.game-container, .menu-content, .panel, .leaderboard-panel, .settings, .boss-content, .leader-item, .color-item, input[type="text"], #next').forEach(el => {
+      el.style.removeProperty('background-color');
+    });
   }
 }
 
 function updateBgStatus() {
   const status = document.getElementById('bg-status');
   if (!status) return;
-  status.textContent = backgroundImage ? '✅ Фон загружен' : 'Фон не задан';
+  status.textContent = backgroundImage ? '✅ Фото загружено' : 'Фон не задан';
 }
 
 async function fetchLeaderboard() {
@@ -281,9 +370,34 @@ async function addScoreToLeaderboard(finalScore) {
   await fetchLeaderboard();
 }
 
+document.getElementById('easter-egg-trigger').addEventListener('click', () => {
+  if (isEasterEggOpen) {
+    isEasterEggOpen = false;
+    leaderboardClicks = 0;
+    heartClicks = 0;
+    document.getElementById('credits-panel').style.display = 'none';
+    document.getElementById('final-credit').style.display = 'none';
+    return;
+  }
+
+  if (leaderboardClicks < 13) leaderboardClicks++;
+  if (leaderboardClicks === 13) {
+    isEasterEggOpen = true;
+    document.getElementById('credits-panel').style.display = 'block';
+  }
+});
+
+document.getElementById('heart-trigger').addEventListener('click', () => {
+  if (!isEasterEggOpen) return; 
+  if (heartClicks < 6) heartClicks++;
+  if (heartClicks === 6) {
+    document.getElementById('final-credit').style.display = 'block';
+  }
+});
+
 document.getElementById('admin-clear').addEventListener('click', () => {
   if (!isAdmin) return;
-  for (let x = 0; x < COLS; x++) board[ROWS - 1][x] = null;
+  board = createBoard(); 
   score += 100;
   updateUI();
   draw();
@@ -292,7 +406,7 @@ document.getElementById('admin-clear').addEventListener('click', () => {
 document.getElementById('admin-squares').addEventListener('click', () => {
   if (!isAdmin) return;
   cheatSquaresActive = !cheatSquaresActive;
-  document.getElementById('admin-squares').textContent = cheatSquaresActive ? "Выключить квадраты" : "Только квадраты";
+  document.getElementById('admin-squares').textContent = cheatSquaresActive ? "Выключить читы" : "Включить фигуру 2x5";
 });
 
 document.getElementById('admin-apply-score').addEventListener('click', async () => {
@@ -325,7 +439,7 @@ document.getElementById('admin-apply-nick').addEventListener('click', async () =
 const colorsPanel = document.getElementById('colors-panel');
 function buildColorsPanel() {
   colorsPanel.innerHTML = '';
-  const configurableColors = Object.keys(DEFAULT_PIECE_COLORS).filter(k => k !== 'BOSS');
+  const configurableColors = Object.keys(DEFAULT_PIECE_COLORS).filter(k => k !== 'BOSS' && k !== 'RGB');
   
   configurableColors.forEach(type => {
     const item = document.createElement('div');
@@ -384,6 +498,27 @@ setStartSpeed.addEventListener('input', () => { speedSettings.start = parseInt(s
 setSpeedStep.addEventListener('input', () => { speedSettings.step = parseInt(setSpeedStep.value); valStep.textContent = speedSettings.step; if (!gameOver && gameStarted) dropInterval = recalcSpeed(); saveSettings(); });
 setMinSpeed.addEventListener('input', () => { speedSettings.min = parseInt(setMinSpeed.value); valMin.textContent = speedSettings.min; if (!gameOver && gameStarted) dropInterval = recalcSpeed(); saveSettings(); });
 
+const setUiOpacity = document.getElementById('set-ui-opacity');
+const valUiOpacity = document.getElementById('val-ui-opacity');
+if(setUiOpacity) {
+  setUiOpacity.addEventListener('input', () => {
+    const val = parseInt(setUiOpacity.value);
+    valUiOpacity.textContent = val;
+    applyUiOpacity(val);
+    saveSettings();
+    draw();
+  });
+}
+
+const useBgInBoardCb = document.getElementById('use-bg-in-board');
+if (useBgInBoardCb) {
+  useBgInBoardCb.addEventListener('change', () => {
+    useBgInBoard = useBgInBoardCb.checked;
+    saveSettings();
+    draw();
+  });
+}
+
 document.getElementById('bg-upload').addEventListener('change', (e) => {
   const file = e.target.files[0]; if (!file) return;
   const reader = new FileReader();
@@ -414,6 +549,11 @@ document.getElementById('settings-reset').addEventListener('click', () => {
   PIECE_COLORS = { ...DEFAULT_PIECE_COLORS };
   Object.keys(DEFAULT_UI_COLORS).forEach(k => UI_COLORS[k] = DEFAULT_UI_COLORS[k].value);
   speedSettings = { ...DEFAULT_SPEED };
+  uiOpacity = 75;
+  useBgInBoard = true;
+  if(setUiOpacity) setUiOpacity.value = 75;
+  if(valUiOpacity) valUiOpacity.textContent = 75;
+  if(useBgInBoardCb) useBgInBoardCb.checked = true;
   backgroundImage = null;
   applyBackgroundToUI(null);
   applyUIColors(); updateBgStatus(); buildColorsPanel(); buildUIColorsPanel(); updateSpeedUI();
@@ -424,7 +564,14 @@ function createBoard() { return Array.from({length: ROWS}, () => Array(COLS).fil
 
 function newPiece() {
   if (cheatSquaresActive) {
-    return { type: 'O', matrix: SHAPES['O'].map(r => [...r]), x: Math.floor((COLS - 2) / 2), y: 0 };
+    const type = 'BLOCK_2x5';
+    return { type: 'RGB', matrix: CHEAT_SHAPES[type].map(r => [...r]), x: Math.floor((COLS - 2) / 2), y: 0 };
+  }
+
+  if (secretShapeActive) {
+    secretShapeActive = false; 
+    const type = 'SECRET';
+    return { type: 'O', matrix: CHEAT_SHAPES[type].map(r => [...r]), x: Math.floor((COLS - 4) / 2), y: 0 };
   }
 
   if (isBossActive) {
@@ -475,9 +622,16 @@ function merge(board, piece) {
 }
 
 function updateBossUI() {
+  if (!bossHud || !bossHudFill || !bossHudText) return;
   const percent = Math.max(0, (bossHP / BOSS_MAX_HP) * 100);
-  bossHpFill.style.width = percent + '%';
-  bossHpText.textContent = `${Math.max(0, bossHP)} / ${BOSS_MAX_HP}`;
+  bossHudFill.style.width = percent + '%';
+  bossHudText.textContent = `${Math.max(0, bossHP)} / ${BOSS_MAX_HP}`;
+}
+
+function checkForBoss() {
+  if (!isBossActive && !isBossPaused && score >= bossScoreTarget) {
+    triggerBoss();
+  }
 }
 
 function startBossFight() {
@@ -485,9 +639,14 @@ function startBossFight() {
   isBossActive = true;
   isBossPaused = false;
   bossModal.classList.add('hidden');
+  
+  if (bossHud) bossHud.style.display = 'block';
   updateBossUI();
   
   board = createBoard();
+  particles = [];
+  trailParticles = [];
+  droppingPiece = null;
   
   const keys = Object.keys(BOSS_SHAPES);
   const type = keys[Math.floor(Math.random() * keys.length)];
@@ -497,6 +656,9 @@ function startBossFight() {
     x: Math.floor((COLS - BOSS_SHAPES[type][0].length) / 2), 
     y: 0 
   };
+  
+  current = next;
+  next = newPiece();
   
   drawNext();
   recalcSpeed();
@@ -510,6 +672,7 @@ function triggerBoss() {
   bossHP = BOSS_MAX_HP;
   updateBossUI();
   bossModal.classList.remove('hidden');
+  droppingPiece = null;
 }
 
 function clearLines() {
@@ -527,15 +690,16 @@ function clearLines() {
       updateBossUI();
       if (bossHP <= 0) {
         isBossActive = false;
-        bossScoreTarget += BOSS_TRIGGER_SCORE;
-        alert("🎉 БОСС ПОВЕРЖЕН! Следующий через 10 000 очков.");
+        bossHud.style.display = 'none';
+        
+        bossScoreTarget = score + BOSS_SCORE_AFTER_WIN;
+        
+        alert(`🎉 БОССИК ПОВЕРЖЕН! Следующий при ${bossScoreTarget} очках.`);
         recalcSpeed();
         updateUI();
       }
-    }
-
-    if (!isBossActive && score >= bossScoreTarget) {
-      triggerBoss();
+    } else {
+      checkForBoss();
     }
 
     const newLevel = Math.floor(lines / LINES_PER_LEVEL) + 1;
@@ -557,12 +721,21 @@ function updateUI() {
   const pct = Math.round((speedSettings.start / dropInterval) * 100);
   speedEl.textContent = pct + '%';
 }
-
 function drawBlock(c, x, y, color, size = BLOCK, alpha = 1) {
-  c.save(); c.globalAlpha = alpha; c.fillStyle = color;
+  c.save(); c.globalAlpha = alpha;
+  c.fillStyle = color;
   c.fillRect(x * size, y * size, size, size);
-  c.strokeStyle = 'rgba(0,0,0,0.4)'; c.strokeRect(x * size, y * size, size, size);
-  c.fillStyle = 'rgba(255,255,255,0.15)'; c.fillRect(x * size + 3, y * size + 3, size - 6, 4);
+  c.strokeStyle = '#000';
+  c.lineWidth = 2;
+  c.strokeRect(x * size + 1, y * size + 1, size - 2, size - 2);
+  c.fillStyle = 'rgba(255, 255, 255, 0.8)';
+  c.fillRect(x * size + 2, y * size + 2, size - 8, 2);
+  c.fillRect(x * size + 2, y * size + 2, 2, size - 8);
+
+  c.fillStyle = 'rgba(0, 0, 0, 0.4)';
+  c.fillRect(x * size + 6, y * size + size - 4, size - 8, 2);
+  c.fillRect(x * size + size - 4, y * size + 6, 2, size - 8); 
+
   c.restore();
 }
 
@@ -589,7 +762,7 @@ function createParticles(piece) {
             vx: (Math.random() - 0.5) * 4,
             vy: -Math.random() * 4 - 2,
             size: BLOCK * 0.4,
-            color: color,
+            color: piece.type === 'RGB' ? `hsl(${hue}, 100%, 50%)` : color,
             life: 1.0
           });
         }
@@ -612,7 +785,7 @@ function createTrailParticles(piece) {
           vx: (Math.random() - 0.5) * 1.5,
           vy: Math.random() * 2 + 1,
           size: Math.random() * 6 + 2,
-          color: color,
+          color: piece.type === 'RGB' ? `hsl(${hue}, 100%, 50%)` : color,
           life: 1.0
         });
       }
@@ -669,20 +842,24 @@ function drawParticles() {
 
 function draw() {
   if (!board) return; 
-  if (backgroundImage) {
+  
+  if (backgroundImage && useBgInBoard) {
     const imgRatio = backgroundImage.width / backgroundImage.height;
     const canvasRatio = canvas.width / canvas.height;
     let sx = 0, sy = 0, sw = backgroundImage.width, sh = backgroundImage.height;
     if (imgRatio > canvasRatio) { sw = backgroundImage.height * canvasRatio; sx = (backgroundImage.width - sw) / 2; }
     else { sh = backgroundImage.width / canvasRatio; sy = (backgroundImage.height - sh) / 2; }
     ctx.drawImage(backgroundImage, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = 'rgba(15, 15, 30, 0.55)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    ctx.fillStyle = `rgba(15, 15, 30, 0.55)`; 
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
   } else {
-    ctx.fillStyle = UI_COLORS.inner; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = UI_COLORS.inner; 
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
 
   if (isBossActive) {
-    ctx.strokeStyle = '#e94560';
+    ctx.strokeStyle = UI_COLORS.accent;
     ctx.lineWidth = 4;
     ctx.strokeRect(2, 2, canvas.width - 4, canvas.height - 4);
     ctx.lineWidth = 1;
@@ -693,23 +870,29 @@ function draw() {
   for (let y = 0; y <= ROWS; y++) { ctx.beginPath(); ctx.moveTo(0, y * BLOCK); ctx.lineTo(canvas.width, y * BLOCK); ctx.stroke(); }
 
   board.forEach((row, y) => row.forEach((type, x) => { 
-    if (type) drawBlock(ctx, x, y, PIECE_COLORS[type] || PIECE_COLORS.BOSS); 
+    if (type) {
+      let color = PIECE_COLORS[type] || PIECE_COLORS.BOSS;
+      if (type === 'RGB') color = `hsl(${hue}, 100%, 50%)`;
+      drawBlock(ctx, x, y, color); 
+    }
   }));
 
   if (current) {
     const ghostY = getGhostY();
+    const ghostColor = current.type === 'RGB' ? `hsl(${hue}, 100%, 50%)` : (PIECE_COLORS[current.type] || PIECE_COLORS.BOSS);
+    
     if (ghostY > current.y) {
       current.matrix.forEach((row, y) => row.forEach((v, x) => {
-        if (v) drawGhostBlock(ctx, current.x + x, ghostY + y, PIECE_COLORS[current.type] || PIECE_COLORS.BOSS);
+        if (v) drawGhostBlock(ctx, current.x + x, ghostY + y, ghostColor);
       }));
     }
     current.matrix.forEach((row, y) => row.forEach((v, x) => {
-      if (v) drawBlock(ctx, current.x + x, current.y + y, PIECE_COLORS[current.type] || PIECE_COLORS.BOSS);
+      if (v) drawBlock(ctx, current.x + x, current.y + y, ghostColor);
     }));
   }
 
   if (droppingPiece) {
-    const color = PIECE_COLORS[droppingPiece.type] || PIECE_COLORS.BOSS;
+    const color = droppingPiece.type === 'RGB' ? `hsl(${hue}, 100%, 50%)` : (PIECE_COLORS[droppingPiece.type] || PIECE_COLORS.BOSS);
     
     droppingPiece.matrix.forEach((row, y) => row.forEach((v, x) => {
       if (v) {
@@ -732,11 +915,11 @@ function draw() {
 
   if (gameOver) {
     ctx.fillStyle = 'rgba(0,0,0,0.75)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = '#e94560'; ctx.font = 'bold 36px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillStyle = UI_COLORS.accent; ctx.font = 'bold 36px sans-serif'; ctx.textAlign = 'center';
     ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2);
   } else if (isPaused) {
     ctx.fillStyle = 'rgba(15, 15, 30, 0.8)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = '#4ecdc4'; ctx.font = 'bold 40px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillStyle = UI_COLORS.accent; ctx.font = 'bold 40px sans-serif'; ctx.textAlign = 'center';
     ctx.fillText('ПАУЗА', canvas.width / 2, canvas.height / 2);
     ctx.fillStyle = '#9aa'; ctx.font = '16px sans-serif';
     ctx.fillText('Нажмите P чтобы продолжить', canvas.width / 2, canvas.height / 2 + 30);
@@ -752,7 +935,8 @@ function drawNext() {
   nctx.save(); nctx.translate(offX, offY);
   m.forEach((row, y) => row.forEach((v, x) => {
     if (v) {
-      nctx.fillStyle = PIECE_COLORS[next.type] || PIECE_COLORS.BOSS; 
+      const color = next.type === 'RGB' ? `hsl(${hue}, 100%, 50%)` : (PIECE_COLORS[next.type] || PIECE_COLORS.BOSS);
+      nctx.fillStyle = color; 
       nctx.fillRect(x * size, y * size, size, size);
       nctx.strokeStyle = 'rgba(0,0,0,0.4)'; nctx.strokeRect(x * size, y * size, size, size);
     }
@@ -773,7 +957,8 @@ function hardDrop() {
   const finalY = getGhostY();
   const distance = finalY - current.y;
   
-  if (distance <= 0) {
+  if (current.type === 'RGB' || distance <= 0) {
+    current.y = finalY;
     createParticles(current);
     merge(board, current);
     clearLines();
@@ -783,6 +968,7 @@ function hardDrop() {
   }
 
   droppingPiece = { ...current, finalY: finalY, animOffset: 0, startY: current.y };
+  
   current = next;
   next = newPiece();
   drawNext();
@@ -834,13 +1020,19 @@ function playerRotate() {
   if (!gameStarted || isBossPaused || isPaused) return;
   const rotated = rotate(current.matrix);
   const old = current.matrix;
+  
+  const kicks = [0, -1, 1, -2, 2];
   current.matrix = rotated;
-  let offset = 1;
-  while (collide(board, current)) {
-    current.x += offset;
-    offset = -(offset + (offset > 0 ? 1 : -1));
-    if (offset > rotated[0].length) { current.matrix = old; return; }
+  
+  for (let kick of kicks) {
+    current.x += kick;
+    if (!collide(board, current)) {
+      return; 
+    }
+    current.x -= kick; 
   }
+  
+  current.matrix = old;
 }
 
 function update(time = 0) {
@@ -853,6 +1045,8 @@ function update(time = 0) {
     lastTime = time; 
     return;
   }
+
+  hue = (hue + 2) % 360;
 
   const delta = time - lastTime; 
   lastTime = time; 
@@ -879,13 +1073,13 @@ function reset() {
   trailParticles = [];
   droppingPiece = null;
   
-  bossScoreTarget = BOSS_TRIGGER_SCORE;
+  bossScoreTarget = FIRST_BOSS_SCORE;
   isBossActive = false;
   isBossPaused = false;
   isPaused = false;
   pauseBtn.textContent = "Пауза (P)";
-  pauseBtn.style.background = "#ffa94d";
   bossModal.classList.add('hidden');
+  if (bossHud) bossHud.style.display = 'none';
   
   next = newPiece(); 
   spawn(); 
@@ -900,11 +1094,23 @@ btnStartBoss.addEventListener('click', () => {
 document.addEventListener('keydown', e => {
   if (document.activeElement === nickInput || document.activeElement === menuNick || document.activeElement === adminTargetNick || document.activeElement === adminSetScore || document.activeElement === adminNewNick) return;
   if (!gameStarted || gameOver) return;
+
+  // === СЕКРЕТНЫЙ КОД 67 ===
+  if (e.key === '6' || e.key === '7') {
+    secretCodeBuffer += e.key;
+    if (secretCodeBuffer.includes('67')) {
+      secretShapeActive = true;
+      secretCodeBuffer = ""; 
+      console.log("СЕКРЕТНАЯ ФИГУРА АКТИВИРОВАНА!");
+    }
+    if (secretCodeBuffer.length > 5) secretCodeBuffer = ""; 
+  } else {
+    secretCodeBuffer = ""; 
+  }
   
   if (isAdmin) {
     if (e.key === 'q' || e.key === 'Q' || e.key === 'й' || e.key === 'Й') {
-      board.pop();
-      board.unshift(Array(COLS).fill(null));
+      board = createBoard(); 
       score += 100;
       updateUI();
       draw();
@@ -925,7 +1131,7 @@ document.addEventListener('keydown', e => {
     }
     if (e.key === 'e' || e.key === 'E' || e.key === 'у' || e.key === 'У') {
       cheatSquaresActive = !cheatSquaresActive;
-      document.getElementById('admin-squares').textContent = cheatSquaresActive ? "Выключить квадраты" : "Только квадраты";
+      document.getElementById('admin-squares').textContent = cheatSquaresActive ? "Выключить читы" : "Включить фигуру 2x5";
       return;
     }
   }

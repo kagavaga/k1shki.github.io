@@ -19,29 +19,36 @@
         <div class="theme-presets" id="theme-presets"></div>
       </div>
       <button id="btn-play" class="btn-play">▶ ИГРАТЬ</button>
-      <div class="menu-footer">← → двигать | ↑ поворот | ↓ вниз | Space — поставить</div>
+      <div class="menu-footer">← → двигать | ↑ поворот | ↓ вниз | Space — сброс</div>
     </div>
   </div>
 
+  <!-- Модалка перед боем (упрощенная) -->
   <div id="boss-modal" class="boss-modal hidden">
     <div class="boss-content">
-      <h2 class="boss-title">⚠️ ВНИМАНИЕ БОСС!</h2>
+      <h2 class="boss-title">⚠️ БОСС!</h2>
       <div class="boss-info">
-        <div class="boss-avatar">😈</div>
-        <div class="boss-name">Боссик</div>
-        <div class="boss-hp-bar">
-          <div id="boss-hp-fill-modal" class="boss-hp-fill"></div>
-        </div>
-        <div id="boss-hp-text-modal" class="boss-hp-text">400 / 400</div>
+        <div class="boss-avatar" style="font-size: 80px;">👹</div>
+        <p class="boss-desc" style="margin-top: 10px;">Боссик пришел по твою душу!</p>
       </div>
-      <p class="boss-desc">Собирайте линии, чтобы наносить урон.<br>После победы поле очистится!</p>
       <button id="btn-start-boss" class="btn-play">В БОЙ!</button>
     </div>
   </div>
 
   <div class="game-container">
     <div class="leaderboard-panel">
-      <h2>🏆 Лидеры</h2>
+      <h2 id="easter-egg-trigger" style="cursor: pointer; user-select: none;">🏆 Лидеры</h2>
+      <div id="credits-panel" style="display: none; margin-top: 15px; padding: 10px; border: 1px solid var(--accent); border-radius: 8px; background: rgba(0,0,0,0.3); text-align: center;">
+        <div style="font-size: 14px; margin-bottom: 5px;">
+          <span style="color: #9aa; font-size: 12px;">Разраб:</span> <strong style="color: var(--accent);">nedyra</strong>
+        </div>
+        <div style="font-size: 14px; margin-bottom: 10px;">
+          <span style="color: #9aa; font-size: 12px;">Тестер:</span> <strong style="color: var(--accent);">Mokrota</strong>
+        </div>
+        <div id="heart-trigger" style="cursor: pointer; font-size: 12px; color: #e94560; user-select: none;">❤️</div>
+        <div id="final-credit" style="display: none; margin-top: 10px; font-size: 16px; font-weight: bold; color: var(--accent);">Дарюша❤️</div>
+      </div>
+
       <div class="leaderboard-scroll" id="leaderboard-list">
         <div style="font-size:11px; color:#9aa; text-align:center;">Загрузка...</div>
       </div>
@@ -52,15 +59,15 @@
     </div>
 
     <div class="game-center">
-      <div id="boss-bar" class="boss-bar hidden">
-        <div style="display:flex; align-items:center; gap:10px; width:100%;">
-          <span style="font-size:24px;">😈</span>
-          <span style="font-weight:bold; color:#e94560; letter-spacing:1px;">БОССИК</span>
-          <div style="flex-grow:1; height:12px; background:#0f0f1e; border-radius:6px; border:1px solid #e94560; overflow:hidden;">
-            <div id="boss-hp-fill-bar" style="height:100%; background:linear-gradient(90deg, #e94560, #ff6b81); width:100%; transition:width 0.3s;"></div>
-          </div>
-          <span id="boss-hp-text-bar" style="font-size:12px; color:#fff; width:70px; text-align:right;">400/400</span>
+      <div id="boss-hud" style="display: none; width: 100%; max-width: 300px; background: rgba(15, 15, 30, 0.8); border: 2px solid #e94560; border-radius: 8px; padding: 8px; text-align: center; margin-bottom: 10px;">
+        <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 5px;">
+          <span style="font-size: 24px;">👹</span>
+          <span style="font-weight: bold; color: #e94560; font-size: 16px;">Боссик</span>
         </div>
+        <div style="width: 100%; height: 12px; background: #000; border-radius: 6px; overflow: hidden;">
+          <div id="boss-hud-fill" style="height: 100%; background: #e94560; width: 100%; transition: width 0.3s;"></div>
+        </div>
+        <div id="boss-hud-text" style="font-size: 11px; margin-top: 3px; color: #fff;">400 / 400</div>
       </div>
 
       <div class="game-area">
@@ -93,11 +100,10 @@
       <button id="restart">Заново</button>
       <button id="pause-btn" style="margin-top: 10px;">Пауза (P)</button>
       
-      <div id="admin-panel" style="display: none; margin-top: 15px; padding: 10px; border: 2px dashed var(--accent); border-radius: 8px; background: rgba(15, 15, 30, 0.4);">
+      <div id="admin-panel" style="display: none; margin-top: 15px; padding: 10px; border: 2px dashed var(--accent); border-radius: 8px; background: rgba(0,0,0,0.2);">
         <h3 style="color: var(--accent); margin-bottom: 8px;">👑 АДМИН</h3>
         <button class="admin-btn" id="admin-clear">Очистить поле</button>
-        <button class="admin-btn" id="admin-squares">Только линии (5x2)</button>
-        <button class="admin-btn" id="admin-noclip">Режим Бога</button>
+        <button class="admin-btn" id="admin-squares">Включить фигуру 2x5</button>
         
         <input type="text" id="admin-target-nick" placeholder="Ник цели" style="width: 100%; padding: 5px; margin-top: 8px; border-radius: 4px; border: 1px solid var(--accent); background: #0f0f1e; color: #fff; font-size: 12px; outline: none;">
         
@@ -108,7 +114,7 @@
         <button class="admin-btn" id="admin-apply-nick" style="margin-top: 5px;">Сменить ник</button>
       </div>
 
-      <div class="controls">← → двигать<br>↑ поворот<br>↓ вниз<br>Space — поставить</div>
+      <div class="controls">← → двигать<br>↑ поворот<br>↓ вниз<br>Space — Поставить</div>
     </div>
 
     <div class="settings">
@@ -136,17 +142,29 @@
         <h3>Цвета интерфейса</h3>
         <div class="colors" id="ui-colors-panel"></div>
       </div>
+      
       <div class="section">
-        <h3>Фон игры</h3>
+        <h3>Настройки фона</h3>
         <label class="file-btn">
           📷 Загрузить фото
           <input type="file" id="bg-upload" accept="image/*" hidden>
         </label>
-        <button id="bg-reset" class="small-btn">Убрать фон</button>
+        <button id="bg-reset" class="small-btn" style="border-color: var(--accent); color: var(--accent);">Убрать фото</button>
         <div id="bg-status" class="status">Фон не задан</div>
+        
+        <div style="display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 12px;">
+          <input type="checkbox" id="use-bg-in-board" style="width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer;">
+          <label for="use-bg-in-board" style="cursor: pointer;">Показывать фото в поле</label>
+        </div>
+
+        <div class="slider-item" style="margin-top: 8px;">
+          <label>Прозрачность интерфейса <span id="val-ui-opacity">75</span>%</label>
+          <input type="range" id="set-ui-opacity" min="10" max="100" step="5" value="75">
+        </div>
       </div>
+      
       <div class="section" style="margin-top: auto;">
-        <button id="settings-reset" class="small-btn">Сбросить всё</button>
+        <button id="settings-reset" class="small-btn" style="border-color: var(--accent); color: var(--accent);">Сбросить всё</button>
       </div>
     </div>
   </div>
