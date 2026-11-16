@@ -147,7 +147,6 @@ body {
 .section h3 { font-size: 11px; text-transform: uppercase; color: #9aa; margin-bottom: 2px; }
 .colors { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
 
-/* Обновлённый стиль для выбора цвета с прозрачностью */
 .color-item { 
   display: flex; 
   flex-direction: column; 
