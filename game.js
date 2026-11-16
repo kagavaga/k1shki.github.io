@@ -26,11 +26,9 @@ let trailParticles = [];
 let droppingPiece = null; 
 let hue = 0;
 
-// === СЕКРЕТНЫЙ КОД 67 ===
 let secretCodeBuffer = "";
 let secretShapeActive = false;
 
-// === ПАСХАЛКА ===
 let leaderboardClicks = 0;
 let heartClicks = 0;
 let isEasterEggOpen = false; 
@@ -1094,8 +1092,6 @@ btnStartBoss.addEventListener('click', () => {
 document.addEventListener('keydown', e => {
   if (document.activeElement === nickInput || document.activeElement === menuNick || document.activeElement === adminTargetNick || document.activeElement === adminSetScore || document.activeElement === adminNewNick) return;
   if (!gameStarted || gameOver) return;
-
-  // === СЕКРЕТНЫЙ КОД 67 ===
   if (e.key === '6' || e.key === '7') {
     secretCodeBuffer += e.key;
     if (secretCodeBuffer.includes('67')) {
