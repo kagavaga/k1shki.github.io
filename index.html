@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Тетрис</title>
+<title>TTrizz</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div id="main-menu" class="main-menu">
     <div class="menu-content">
-      <h1 class="game-title">ТЕТРИС</h1>
+      <h1 class="game-title">TTrizz</h1>
       <div class="menu-section">
         <label>Твой никнейм:</label>
         <input type="text" id="menu-nick" maxlength="15" placeholder="Игрок" autocomplete="off">
@@ -19,11 +19,10 @@
         <div class="theme-presets" id="theme-presets"></div>
       </div>
       <button id="btn-play" class="btn-play">▶ ИГРАТЬ</button>
-      <div class="menu-footer">← → двигать | ↑ поворот | ↓ вниз | Space — сброс</div>
+      <div class="menu-footer">← → двигать | ↑ поворот | ↓ вниз | Space — поставить</div>
     </div>
   </div>
 
-  <!-- ОКНО БОССА -->
   <div id="boss-modal" class="boss-modal hidden">
     <div class="boss-content">
       <h2 class="boss-title">⚠️ БОСС!</h2>
@@ -60,7 +59,7 @@
         <button class="mob-btn" id="mob-rotate">🔄</button>
         <button class="mob-btn" id="mob-right">▶</button>
         <button class="mob-btn wide" id="mob-down">▼ Вниз</button>
-        <button class="mob-btn wide" id="mob-drop">⤓ Сброс</button>
+        <button class="mob-btn wide" id="mob-drop">⤓ Поставить</button>
       </div>
     </div>
 
@@ -96,7 +95,7 @@
         <button class="admin-btn" id="admin-apply-nick" style="margin-top: 5px;">Сменить ник</button>
       </div>
 
-      <div class="controls">← → двигать<br>↑ поворот<br>↓ вниз<br>Space — сброс</div>
+      <div class="controls">← → двигать<br>↑ поворот<br>↓ вниз<br>Space — поставить</div>
     </div>
 
     <div class="settings">

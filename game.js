@@ -55,11 +55,14 @@ const SHAPES = {
 };
 
 const BOSS_SHAPES = {
-  PLUS: [[0,1,0],[1,1,1],[0,1,0]],
-  T: [[1,1,1],[0,1,0],[0,1,0]],
-  P: [[1,1,1],[1,1,0],[1,0,0]],
-  O_PIMPLE: [[1,1],[1,1],[1,0]],
-  L_SHAPE: [[1,0],[1,1]]
+  PLUS: [[0,1,0],[1,1,1],[0,1,0]],           
+  T: [[1,1,1],[0,1,0],[0,1,0]],              
+  STICK_LONG: [[1],[1],[1],[1]],             
+  STICK_SHORT: [[1],[1],[1]],                
+  SINGLE: [[1]],                             
+  O_PIMPLE_RIGHT: [[1,1],[1,1],[0,1]],       
+  O_PIMPLE_LEFT: [[1,1],[1,1],[1,0]],        
+  BRIDGE: [[1,0,1],[1,1,1]]                  
 };
 
 const DEFAULT_PIECE_COLORS = {
@@ -523,7 +526,8 @@ function clearLines() {
       updateBossUI();
       if (bossHP <= 0) {
         isBossActive = false;
-        bossScoreTarget += BOSS_TRIGGER_SCORE;
+        // ИСПРАВЛЕНИЕ БАГА: Следующий босс будет строго через 10к очков ОТ ТЕКУЩЕГО СЧЕТА
+        bossScoreTarget = score + BOSS_TRIGGER_SCORE;
         alert("🎉 БОСС ПОВЕРЖЕН! Следующий через 10 000 очков.");
         recalcSpeed();
         updateUI();
@@ -718,7 +722,6 @@ document.addEventListener('keydown', e => {
   if (document.activeElement === nickInput || document.activeElement === menuNick || document.activeElement === adminTargetNick || document.activeElement === adminSetScore || document.activeElement === adminNewNick) return;
   if (!gameStarted || gameOver) return;
   
-  // ЧИТЫ (КЛАВИШИ)
   if (isAdmin) {
     if (e.key === 'q' || e.key === 'Q' || e.key === 'й' || e.key === 'Й') {
       board.pop();
@@ -785,4 +788,4 @@ buildUIColorsPanel();
 updateSpeedUI();
 updateBgStatus();
 fetchLeaderboard(); 
-draw(); 
+draw();
