@@ -10,14 +10,17 @@ const LINES_PER_LEVEL = 8;
 const DEFAULT_SPEED = { start: 800, step: 55, min: 90 };
 let speedSettings = { ...DEFAULT_SPEED };
 
-const BOSS_TRIGGER_SCORE = 10000; 
+const FIRST_BOSS_TRIGGER = 10000; 
+const NEXT_BOSS_TRIGGER = 25000;
 const BOSS_MAX_HP = 400; 
 
-let bossScoreTarget = BOSS_TRIGGER_SCORE;
+let bossScoreTarget = FIRST_BOSS_TRIGGER;
 let bossHP = BOSS_MAX_HP;
 let isBossActive = false;
 let isAdmin = false;
-let cheatSquaresActive = false;
+let cheatLinesActive = false;
+let cheatNoclipActive = false; 
+let rainbowTime = 0;
 
 const canvas = document.getElementById('board');
 const ctx = canvas.getContext('2d');
@@ -31,15 +34,19 @@ const speedEl = document.getElementById('speed');
 const restartBtn = document.getElementById('restart');
 const pauseBtn = document.getElementById('pause-btn');
 
+const bossModal = document.getElementById('boss-modal');
+const bossHpFillModal = document.getElementById('boss-hp-fill-modal');
+const bossHpTextModal = document.getElementById('boss-hp-text-modal');
+const btnStartBoss = document.getElementById('btn-start-boss');
+
+const bossBar = document.getElementById('boss-bar');
+const bossHpFillBar = document.getElementById('boss-hp-fill-bar');
+const bossHpTextBar = document.getElementById('boss-hp-text-bar');
+
 const adminPanel = document.getElementById('admin-panel');
 const adminTargetNick = document.getElementById('admin-target-nick');
 const adminSetScore = document.getElementById('admin-set-score');
 const adminNewNick = document.getElementById('admin-new-nick');
-
-const bossModal = document.getElementById('boss-modal');
-const bossHpFill = document.getElementById('boss-hp-fill');
-const bossHpText = document.getElementById('boss-hp-text');
-const btnStartBoss = document.getElementById('btn-start-boss');
 
 const nickInput = document.getElementById('player-nick');
 const leaderboardList = document.getElementById('leaderboard-list');
@@ -65,10 +72,16 @@ const BOSS_SHAPES = {
   BRIDGE: [[1,0,1],[1,1,1]]                  
 };
 
+// Теперь храним и цвет, и прозрачность
 const DEFAULT_PIECE_COLORS = {
-  I: '#4ecdc4', O: '#ffe66d', T: '#c44dff',
-  S: '#4dff88', Z: '#ff4d6d', J: '#4d7cff', L: '#ffa94d',
-  BOSS: '#e94560' 
+  I: { color: '#4ecdc4', alpha: 1 }, 
+  O: { color: '#ffe66d', alpha: 1 }, 
+  T: { color: '#c44dff', alpha: 1 },
+  S: { color: '#4dff88', alpha: 1 }, 
+  Z: { color: '#ff4d6d', alpha: 1 }, 
+  J: { color: '#4d7cff', alpha: 1 }, 
+  L: { color: '#ffa94d', alpha: 1 },
+  BOSS: { color: '#e94560', alpha: 1 } 
 };
 
 const THEME_PRESETS = [
@@ -79,22 +92,28 @@ const THEME_PRESETS = [
 ];
 
 const DEFAULT_UI_COLORS = {
-  page:      { label: 'Фон сайта',   value: THEME_PRESETS[0].ui.page },
-  container: { label: 'Контейнер',   value: THEME_PRESETS[0].ui.container },
-  panel:     { label: 'Панели',      value: THEME_PRESETS[0].ui.panel },
-  inner:     { label: 'Поле',        value: THEME_PRESETS[0].ui.inner },
-  accent:    { label: 'Акцент',      value: THEME_PRESETS[0].ui.accent }
+  page:      { label: 'Фон сайта',   value: '#1a1a2e', alpha: 1 },
+  container: { label: 'Контейнер',   value: '#16213e', alpha: 1 },
+  panel:     { label: 'Панели',      value: '#0f3460', alpha: 1 },
+  inner:     { label: 'Поле',        value: '#0f0f1e', alpha: 1 },
+  accent:    { label: 'Акцент',      value: '#4ecdc4', alpha: 1 }
 };
 
-let PIECE_COLORS = { ...DEFAULT_PIECE_COLORS };
-let UI_COLORS = {};
-Object.keys(DEFAULT_UI_COLORS).forEach(k => UI_COLORS[k] = DEFAULT_UI_COLORS[k].value);
+let PIECE_COLORS = JSON.parse(JSON.stringify(DEFAULT_PIECE_COLORS));
+let UI_COLORS = JSON.parse(JSON.stringify(DEFAULT_UI_COLORS));
 
 let board, current, next, score, lines, level, dropInterval, dropCounter, lastTime, gameOver, rafId;
 let backgroundImage = null;
 let gameStarted = false;
 let isBossPaused = false;
 let isPaused = false;
+
+function hexToRgba(hex, alpha) {
+  let r = parseInt(hex.slice(1, 3), 16),
+      g = parseInt(hex.slice(3, 5), 16),
+      b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
 
 function buildThemePresets() {
   themePresetsBox.innerHTML = '';
@@ -106,7 +125,10 @@ function buildThemePresets() {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      Object.keys(theme.ui).forEach(key => UI_COLORS[key] = theme.ui[key]);
+      Object.keys(theme.ui).forEach(key => {
+        UI_COLORS[key].value = theme.ui[key];
+        UI_COLORS[key].alpha = 1; // При смене темы сбрасываем прозрачность
+      });
       applyUIColors();
       buildUIColorsPanel(); 
       saveSettings();
@@ -153,10 +175,8 @@ function togglePause() {
   
   if (isPaused) {
     pauseBtn.textContent = "Продолжить (P)";
-    pauseBtn.style.background = "#4ecdc4";
   } else {
     pauseBtn.textContent = "Пауза (P)";
-    pauseBtn.style.background = "#ffa94d";
   }
   draw(); 
 }
@@ -165,11 +185,11 @@ pauseBtn.addEventListener('click', togglePause);
 
 function applyUIColors() {
   const root = document.documentElement;
-  root.style.setProperty('--bg-page', UI_COLORS.page);
-  root.style.setProperty('--bg-container', UI_COLORS.container);
-  root.style.setProperty('--bg-panel', UI_COLORS.panel);
-  root.style.setProperty('--bg-inner', UI_COLORS.inner);
-  root.style.setProperty('--accent', UI_COLORS.accent);
+  root.style.setProperty('--bg-page', hexToRgba(UI_COLORS.page.value, UI_COLORS.page.alpha));
+  root.style.setProperty('--bg-container', hexToRgba(UI_COLORS.container.value, UI_COLORS.container.alpha));
+  root.style.setProperty('--bg-panel', hexToRgba(UI_COLORS.panel.value, UI_COLORS.panel.alpha));
+  root.style.setProperty('--bg-inner', hexToRgba(UI_COLORS.inner.value, UI_COLORS.inner.alpha));
+  root.style.setProperty('--accent', hexToRgba(UI_COLORS.accent.value, UI_COLORS.accent.alpha));
 }
 
 function saveSettings() {
@@ -188,9 +208,25 @@ function saveSettings() {
 function loadSettings() {
   try {
     const pieceRaw = localStorage.getItem('tetris-piece-colors');
-    if (pieceRaw) PIECE_COLORS = { ...DEFAULT_PIECE_COLORS, ...JSON.parse(pieceRaw) };
+    if (pieceRaw) {
+      const saved = JSON.parse(pieceRaw);
+      Object.keys(saved).forEach(k => {
+        if (saved[k]) {
+          PIECE_COLORS[k] = typeof saved[k] === 'string' ? { color: saved[k], alpha: 1 } : saved[k];
+        }
+      });
+    }
+    
     const uiRaw = localStorage.getItem('tetris-ui-colors');
-    if (uiRaw) UI_COLORS = { ...UI_COLORS, ...JSON.parse(uiRaw) };
+    if (uiRaw) {
+      const saved = JSON.parse(uiRaw);
+      Object.keys(saved).forEach(k => {
+        if (saved[k]) {
+          UI_COLORS[k] = typeof saved[k] === 'string' ? { value: saved[k], alpha: 1 } : saved[k];
+        }
+      });
+    }
+
     const speedRaw = localStorage.getItem('tetris-speed');
     if (speedRaw) speedSettings = { ...DEFAULT_SPEED, ...JSON.parse(speedRaw) };
     
@@ -281,7 +317,7 @@ async function addScoreToLeaderboard(finalScore) {
 
 document.getElementById('admin-clear').addEventListener('click', () => {
   if (!isAdmin) return;
-  for (let x = 0; x < COLS; x++) board[ROWS - 1][x] = null;
+  board = createBoard(); 
   score += 100;
   updateUI();
   draw();
@@ -289,8 +325,15 @@ document.getElementById('admin-clear').addEventListener('click', () => {
 
 document.getElementById('admin-squares').addEventListener('click', () => {
   if (!isAdmin) return;
-  cheatSquaresActive = !cheatSquaresActive;
-  document.getElementById('admin-squares').textContent = cheatSquaresActive ? "Выключить квадраты" : "Только квадраты";
+  cheatLinesActive = !cheatLinesActive;
+  document.getElementById('admin-squares').textContent = cheatLinesActive ? "Выключить линии" : "Только линии (5x2)";
+});
+
+document.getElementById('admin-noclip').addEventListener('click', () => {
+  if (!isAdmin) return;
+  cheatNoclipActive = !cheatNoclipActive;
+  document.getElementById('admin-noclip').textContent = cheatNoclipActive ? "Выключить Бога" : "Режим Бога (в стены)";
+  document.getElementById('admin-noclip').style.background = cheatNoclipActive ? "#4ecdc4" : "var(--accent)";
 });
 
 document.getElementById('admin-apply-score').addEventListener('click', async () => {
@@ -320,7 +363,7 @@ document.getElementById('admin-apply-nick').addEventListener('click', async () =
   alert(`Ник ${target} изменен на ${newNick}`);
 });
 
-
+// === ПАНЕЛЬ ЦВЕТОВ ФИГУР С ПРОЗРАЧНОСТЬЮ ===
 const colorsPanel = document.getElementById('colors-panel');
 function buildColorsPanel() {
   colorsPanel.innerHTML = '';
@@ -329,36 +372,79 @@ function buildColorsPanel() {
   configurableColors.forEach(type => {
     const item = document.createElement('div');
     item.className = 'color-item';
+    
+    // Верхняя строка: цвет и название
+    const topRow = document.createElement('div');
+    topRow.className = 'color-top-row';
+    
     const input = document.createElement('input');
     input.type = 'color';
-    input.value = PIECE_COLORS[type];
+    input.value = PIECE_COLORS[type].color;
     input.addEventListener('input', () => {
-      PIECE_COLORS[type] = input.value;
+      PIECE_COLORS[type].color = input.value;
       saveSettings(); draw(); drawNext();
     });
+    
     const label = document.createElement('span');
     label.textContent = type;
-    item.appendChild(input); item.appendChild(label);
+    
+    topRow.appendChild(input); 
+    topRow.appendChild(label);
+    
+    // Ползунок прозрачности
+    const alphaInput = document.createElement('input');
+    alphaInput.type = 'range';
+    alphaInput.className = 'color-alpha';
+    alphaInput.min = '0'; alphaInput.max = '1'; alphaInput.step = '0.05';
+    alphaInput.value = PIECE_COLORS[type].alpha;
+    alphaInput.addEventListener('input', () => {
+      PIECE_COLORS[type].alpha = parseFloat(alphaInput.value);
+      saveSettings(); draw(); drawNext();
+    });
+
+    item.appendChild(topRow);
+    item.appendChild(alphaInput);
     colorsPanel.appendChild(item);
   });
 }
 
+// === ПАНЕЛЬ ЦВЕТОВ ИНТЕРФЕЙСА С ПРОЗРАЧНОСТЬЮ ===
 const uiColorsPanel = document.getElementById('ui-colors-panel');
 function buildUIColorsPanel() {
   uiColorsPanel.innerHTML = '';
   Object.keys(DEFAULT_UI_COLORS).forEach(key => {
     const item = document.createElement('div');
     item.className = 'color-item';
+    
+    const topRow = document.createElement('div');
+    topRow.className = 'color-top-row';
+    
     const input = document.createElement('input');
     input.type = 'color';
-    input.value = UI_COLORS[key];
+    input.value = UI_COLORS[key].value;
     input.addEventListener('input', () => {
-      UI_COLORS[key] = input.value;
+      UI_COLORS[key].value = input.value;
       applyUIColors(); saveSettings(); draw();
     });
+    
     const label = document.createElement('span');
     label.textContent = DEFAULT_UI_COLORS[key].label;
-    item.appendChild(input); item.appendChild(label);
+    
+    topRow.appendChild(input); 
+    topRow.appendChild(label);
+    
+    const alphaInput = document.createElement('input');
+    alphaInput.type = 'range';
+    alphaInput.className = 'color-alpha';
+    alphaInput.min = '0'; alphaInput.max = '1'; alphaInput.step = '0.05';
+    alphaInput.value = UI_COLORS[key].alpha;
+    alphaInput.addEventListener('input', () => {
+      UI_COLORS[key].alpha = parseFloat(alphaInput.value);
+      applyUIColors(); saveSettings(); draw();
+    });
+
+    item.appendChild(topRow);
+    item.appendChild(alphaInput);
     uiColorsPanel.appendChild(item);
   });
 }
@@ -410,8 +496,8 @@ document.getElementById('bg-reset').addEventListener('click', () => {
 
 document.getElementById('settings-reset').addEventListener('click', () => {
   if (!confirm('Сбросить все настройки?')) return;
-  PIECE_COLORS = { ...DEFAULT_PIECE_COLORS };
-  Object.keys(DEFAULT_UI_COLORS).forEach(k => UI_COLORS[k] = DEFAULT_UI_COLORS[k].value);
+  PIECE_COLORS = JSON.parse(JSON.stringify(DEFAULT_PIECE_COLORS));
+  UI_COLORS = JSON.parse(JSON.stringify(DEFAULT_UI_COLORS));
   speedSettings = { ...DEFAULT_SPEED };
   backgroundImage = null;
   applyBackgroundToUI(null);
@@ -422,8 +508,9 @@ document.getElementById('settings-reset').addEventListener('click', () => {
 function createBoard() { return Array.from({length: ROWS}, () => Array(COLS).fill(null)); }
 
 function newPiece() {
-  if (cheatSquaresActive) {
-    return { type: 'O', matrix: SHAPES['O'].map(r => [...r]), x: Math.floor((COLS - 2) / 2), y: 0 };
+  if (cheatLinesActive) {
+    const lineMatrix = [ [1,1,1,1,1], [1,1,1,1,1] ];
+    return { type: 'RAINBOW', matrix: lineMatrix, x: Math.floor((COLS - 5) / 2), y: 0 };
   }
 
   if (isBossActive) {
@@ -454,7 +541,15 @@ function collide(board, piece) {
     for (let x = 0; x < piece.matrix[y].length; x++) {
       if (!piece.matrix[y][x]) continue;
       const py = piece.y + y, px = piece.x + x;
-      if (px < 0 || px >= COLS || py >= ROWS) return true;
+      
+      if (py >= ROWS) return true;
+
+      if (cheatNoclipActive) {
+        if (px < 0 || px >= COLS) return true; 
+        continue; 
+      }
+
+      if (px < 0 || px >= COLS) return true;
       if (py >= 0 && board[py][px]) return true;
     }
   }
@@ -469,14 +564,20 @@ function getGhostY() {
 
 function merge(board, piece) {
   piece.matrix.forEach((row, y) => {
-    row.forEach((v, x) => { if (v && piece.y + y >= 0) board[piece.y + y][piece.x + x] = piece.type; });
+    row.forEach((v, x) => { 
+      if (v && piece.y + y >= 0 && piece.y + y < ROWS && piece.x + x >= 0 && piece.x + x < COLS) {
+        board[piece.y + y][piece.x + x] = piece.type; 
+      }
+    });
   });
 }
 
 function updateBossUI() {
   const percent = Math.max(0, (bossHP / BOSS_MAX_HP) * 100);
-  bossHpFill.style.width = percent + '%';
-  bossHpText.textContent = `${Math.max(0, bossHP)} / ${BOSS_MAX_HP}`;
+  bossHpFillModal.style.width = percent + '%';
+  bossHpTextModal.textContent = `${Math.max(0, bossHP)} / ${BOSS_MAX_HP}`;
+  bossHpFillBar.style.width = percent + '%';
+  bossHpTextBar.textContent = `${Math.max(0, bossHP)}/${BOSS_MAX_HP}`;
 }
 
 function startBossFight() {
@@ -484,6 +585,7 @@ function startBossFight() {
   isBossActive = true;
   isBossPaused = false;
   bossModal.classList.add('hidden');
+  bossBar.classList.remove('hidden'); 
   updateBossUI();
   
   board = createBoard();
@@ -526,11 +628,13 @@ function clearLines() {
       updateBossUI();
       if (bossHP <= 0) {
         isBossActive = false;
-        // ИСПРАВЛЕНИЕ БАГА: Следующий босс будет строго через 10к очков ОТ ТЕКУЩЕГО СЧЕТА
-        bossScoreTarget = score + BOSS_TRIGGER_SCORE;
-        alert("🎉 БОСС ПОВЕРЖЕН! Следующий через 10 000 очков.");
+        board = createBoard(); 
+        bossBar.classList.add('hidden'); 
+        bossScoreTarget = score + NEXT_BOSS_TRIGGER; 
+        alert("🎉 БОСС ПОВЕРЖЕН! Поле очищено. Следующий через 25 000 очков.");
         recalcSpeed();
         updateUI();
+        draw();
       }
     }
 
@@ -558,19 +662,44 @@ function updateUI() {
   speedEl.textContent = pct + '%';
 }
 
-function drawBlock(c, x, y, color, size = BLOCK, alpha = 1) {
-  c.save(); c.globalAlpha = alpha; c.fillStyle = color;
+function drawBlock(c, x, y, colorData, size = BLOCK, alphaOverride = null, isRainbow = false) {
+  c.save(); 
+  
+  // Берем либо переопределенную прозрачность (для призрака), либо из настроек
+  const finalAlpha = alphaOverride !== null ? alphaOverride : colorData.alpha;
+
+  if (isRainbow) {
+    c.fillStyle = `hsla(${(rainbowTime * 0.1) % 360}, 100%, 50%, ${finalAlpha})`;
+  } else {
+    c.fillStyle = hexToRgba(colorData.color, finalAlpha);
+  }
+  
   c.fillRect(x * size, y * size, size, size);
-  c.strokeStyle = 'rgba(0,0,0,0.4)'; c.strokeRect(x * size, y * size, size, size);
-  c.fillStyle = 'rgba(255,255,255,0.15)'; c.fillRect(x * size + 3, y * size + 3, size - 6, 4);
+  
+  // Рамка и блик только если блок не совсем прозрачный
+  if (finalAlpha > 0.1) {
+    c.strokeStyle = `rgba(0,0,0,${0.4 * finalAlpha})`; 
+    c.strokeRect(x * size, y * size, size, size);
+    c.fillStyle = `rgba(255,255,255,${0.15 * finalAlpha})`; 
+    c.fillRect(x * size + 3, y * size + 3, size - 6, 4);
+  }
+  
   c.restore();
 }
 
-function drawGhostBlock(c, x, y, color, size = BLOCK) {
+function drawGhostBlock(c, x, y, colorData, size = BLOCK, isRainbow = false) {
   const px = x * size, py = y * size;
-  c.save(); c.globalAlpha = 0.45; c.fillStyle = color; c.fillRect(px, py, size, size);
-  c.globalAlpha = 1; c.strokeStyle = color; c.lineWidth = 2; c.strokeRect(px + 1, py + 1, size - 2, size - 2);
-  c.globalAlpha = 0.6; c.fillStyle = 'rgba(255,255,255,0.35)'; c.fillRect(px + 4, py + 4, size - 8, 3);
+  c.save(); 
+  
+  const ghostAlpha = colorData.alpha * 0.4; // Призрак всегда прозрачнее оригинала
+  
+  c.fillStyle = isRainbow ? `hsla(${(rainbowTime * 0.1) % 360}, 100%, 50%, ${ghostAlpha})` : hexToRgba(colorData.color, ghostAlpha); 
+  c.fillRect(px, py, size, size);
+  
+  if (ghostAlpha > 0.1) {
+    c.globalAlpha = 1; c.strokeStyle = colorData.color; c.lineWidth = 2; c.strokeRect(px + 1, py + 1, size - 2, size - 2);
+    c.globalAlpha = 0.6; c.fillStyle = 'rgba(255,255,255,0.35)'; c.fillRect(px + 4, py + 4, size - 8, 3);
+  }
   c.restore();
 }
 
@@ -585,7 +714,8 @@ function draw() {
     ctx.drawImage(backgroundImage, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
     ctx.fillStyle = 'rgba(15, 15, 30, 0.55)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
   } else {
-    ctx.fillStyle = UI_COLORS.inner; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = hexToRgba(UI_COLORS.inner.value, UI_COLORS.inner.alpha); 
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
 
   if (isBossActive) {
@@ -600,18 +730,18 @@ function draw() {
   for (let y = 0; y <= ROWS; y++) { ctx.beginPath(); ctx.moveTo(0, y * BLOCK); ctx.lineTo(canvas.width, y * BLOCK); ctx.stroke(); }
 
   board.forEach((row, y) => row.forEach((type, x) => { 
-    if (type) drawBlock(ctx, x, y, PIECE_COLORS[type] || PIECE_COLORS.BOSS); 
+    if (type) drawBlock(ctx, x, y, PIECE_COLORS[type] || PIECE_COLORS.BOSS, BLOCK, null, type === 'RAINBOW'); 
   }));
 
   if (current) {
     const ghostY = getGhostY();
     if (ghostY > current.y) {
       current.matrix.forEach((row, y) => row.forEach((v, x) => {
-        if (v) drawGhostBlock(ctx, current.x + x, ghostY + y, PIECE_COLORS[current.type] || PIECE_COLORS.BOSS);
+        if (v) drawGhostBlock(ctx, current.x + x, ghostY + y, PIECE_COLORS[current.type] || PIECE_COLORS.BOSS, BLOCK, current.type === 'RAINBOW');
       }));
     }
     current.matrix.forEach((row, y) => row.forEach((v, x) => {
-      if (v) drawBlock(ctx, current.x + x, current.y + y, PIECE_COLORS[current.type] || PIECE_COLORS.BOSS);
+      if (v) drawBlock(ctx, current.x + x, current.y + y, PIECE_COLORS[current.type] || PIECE_COLORS.BOSS, BLOCK, null, current.type === 'RAINBOW');
     }));
   }
 
@@ -629,7 +759,8 @@ function draw() {
 }
 
 function drawNext() {
-  nctx.fillStyle = UI_COLORS.inner; nctx.fillRect(0, 0, nextCanvas.width, nextCanvas.height);
+  nctx.fillStyle = hexToRgba(UI_COLORS.inner.value, UI_COLORS.inner.alpha); 
+  nctx.fillRect(0, 0, nextCanvas.width, nextCanvas.height);
   if (!next) return;
   const size = 24, m = next.matrix;
   const offX = (nextCanvas.width - m[0].length * size) / 2;
@@ -637,7 +768,12 @@ function drawNext() {
   nctx.save(); nctx.translate(offX, offY);
   m.forEach((row, y) => row.forEach((v, x) => {
     if (v) {
-      nctx.fillStyle = PIECE_COLORS[next.type] || PIECE_COLORS.BOSS; 
+      const typeData = PIECE_COLORS[next.type] || PIECE_COLORS.BOSS;
+      if (next.type === 'RAINBOW') {
+        nctx.fillStyle = `hsl(${(rainbowTime * 0.1) % 360}, 100%, 50%)`;
+      } else {
+        nctx.fillStyle = hexToRgba(typeData.color, typeData.alpha); 
+      }
       nctx.fillRect(x * size, y * size, size, size);
       nctx.strokeStyle = 'rgba(0,0,0,0.4)'; nctx.strokeRect(x * size, y * size, size, size);
     }
@@ -670,15 +806,26 @@ function move(dir) { if (gameStarted && !isBossPaused && !isPaused) { current.x 
 
 function playerRotate() {
   if (!gameStarted || isBossPaused || isPaused) return;
-  const rotated = rotate(current.matrix);
-  const old = current.matrix;
-  current.matrix = rotated;
+  
+  const oldMatrix = current.matrix;
+  const rotatedMatrix = rotate(current.matrix);
+  
+  current.matrix = rotatedMatrix;
+  if (!collide(board, current)) return;
+
   let offset = 1;
-  while (collide(board, current)) {
+  while (offset <= Math.max(oldMatrix.length, oldMatrix[0].length)) {
     current.x += offset;
-    offset = -(offset + (offset > 0 ? 1 : -1));
-    if (offset > rotated[0].length) { current.matrix = old; return; }
+    if (!collide(board, current)) return;
+
+    current.x -= offset * 2;
+    if (!collide(board, current)) return;
+
+    current.x += offset;
+    offset++;
   }
+
+  current.matrix = oldMatrix;
 }
 
 function update(time = 0) {
@@ -693,6 +840,9 @@ function update(time = 0) {
   }
 
   const delta = time - lastTime; lastTime = time; dropCounter += delta;
+  
+  rainbowTime += delta;
+
   if (dropCounter > dropInterval) drop();
   draw(); rafId = requestAnimationFrame(update);
 }
@@ -703,13 +853,13 @@ function reset() {
   dropInterval = speedSettings.start;
   dropCounter = 0; lastTime = 0; gameOver = false;
   
-  bossScoreTarget = BOSS_TRIGGER_SCORE;
+  bossScoreTarget = FIRST_BOSS_TRIGGER;
   isBossActive = false;
   isBossPaused = false;
   isPaused = false;
   pauseBtn.textContent = "Пауза (P)";
-  pauseBtn.style.background = "#ffa94d";
   bossModal.classList.add('hidden');
+  bossBar.classList.add('hidden');
   
   next = newPiece(); spawn(); updateUI(); update();
 }
@@ -745,8 +895,14 @@ document.addEventListener('keydown', e => {
       return;
     }
     if (e.key === 'e' || e.key === 'E' || e.key === 'у' || e.key === 'У') {
-      cheatSquaresActive = !cheatSquaresActive;
-      document.getElementById('admin-squares').textContent = cheatSquaresActive ? "Выключить квадраты" : "Только квадраты";
+      cheatLinesActive = !cheatLinesActive;
+      document.getElementById('admin-squares').textContent = cheatLinesActive ? "Выключить линии" : "Только линии (5x2)";
+      return;
+    }
+    if (e.key === 'r' || e.key === 'R' || e.key === 'к' || e.key === 'К') {
+      cheatNoclipActive = !cheatNoclipActive;
+      document.getElementById('admin-noclip').textContent = cheatNoclipActive ? "Выключить Бога" : "Режим Бога (в стены)";
+      document.getElementById('admin-noclip').style.background = cheatNoclipActive ? "#4ecdc4" : "var(--accent)";
       return;
     }
   }
