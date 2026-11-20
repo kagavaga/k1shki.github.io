@@ -4,171 +4,164 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>TTrizz</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧩</text></svg>">
 <link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="game.js" defer></script>
 </head>
 <body>
-  <div id="main-menu" class="main-menu">
-    <div class="menu-content">
-      <h1 class="game-title">TTrizz</h1>
-      <div class="menu-section">
-        <label>Твой никнейм:</label>
-        <input type="text" id="menu-nick" maxlength="15" placeholder="Игрок" autocomplete="off">
+
+<div id="main-menu" class="main-menu">
+  <div class="menu-content">
+    <h1 class="game-title">TTrizz</h1>
+    <div class="menu-section">
+      <label for="menu-nick">Твой никнейм:</label>
+      <input type="text" id="menu-nick" maxlength="16" placeholder="Игрок" autocomplete="off">
+    </div>
+    <div class="menu-section">
+      <label>Тема оформления:</label>
+      <div class="theme-presets" id="theme-presets"></div>
+    </div>
+    <button id="btn-play" class="btn-play">▶ Играть</button>
+    <div class="menu-footer">← → двигать | ↑ поворот | ↓ вниз | Space — сброс</div>
+  </div>
+</div>
+
+<div id="boss-modal" class="boss-modal hidden">
+  <div class="boss-content">
+    <div class="boss-title">⚠️ БОСС!</div>
+    <div class="boss-info">
+      <div class="boss-avatar">👹</div>
+      <div class="boss-hp-bar"><div class="boss-hp-fill" style="width:100%"></div></div>
+      <div class="boss-hp-text">400 / 400</div>
+    </div>
+    <div class="boss-desc">Боссик пришел по твою душу!<br>Собирай линии, чтобы нанести урон. Каждая линия — 15 урона.</div>
+    <button id="btn-start-boss" class="btn-play">В бой!</button>
+  </div>
+</div>
+
+<div class="game-container">
+
+  <aside class="leaderboard-panel">
+    <h2 id="easter-egg-trigger" title="🏆">🏆 Лидеры</h2>
+    <div id="credits-panel" class="credits" style="display:none;">
+      Разраб: <b>nedyra</b><br>
+      Тестер: <b>Mokrota</b> <span id="heart-trigger" class="heart">❤️</span>
+    </div>
+    <div id="final-credit" class="credits final" style="display:none;">Дарюша ❤️</div>
+    <div class="leaderboard-scroll" id="leaderboard-list">
+      <div style="font-size:11px; color:#9aa; text-align:center;">Загрузка...</div>
+    </div>
+    <div class="nickname-box">
+      <label for="player-nick">Ваш ник:</label>
+      <input type="text" id="player-nick" maxlength="16" autocomplete="off">
+    </div>
+  </aside>
+
+  <div class="game-center">
+    <div id="boss-hud" class="boss-bar" style="display:none;">
+      <div class="boss-bar-left">
+        <span class="boss-icon">👹</span>
+        <span class="boss-name">Боссик</span>
       </div>
-      <div class="menu-section">
-        <label>Тема оформления:</label>
-        <div class="theme-presets" id="theme-presets"></div>
+      <div class="boss-bar-track">
+        <div class="boss-bar-fill" id="boss-hud-fill"></div>
       </div>
-      <button id="btn-play" class="btn-play">▶ ИГРАТЬ</button>
-      <div class="menu-footer">← → двигать | ↑ поворот | ↓ вниз | Space — сброс</div>
+      <span class="boss-bar-text" id="boss-hud-text">400 / 400</span>
+    </div>
+
+    <div class="game-area">
+      <canvas id="board" width="300" height="600"></canvas>
+    </div>
+
+    <div class="mobile-controls" id="mobile-controls">
+      <button class="mob-btn" id="mob-left" aria-label="Влево">◀</button>
+      <button class="mob-btn" id="mob-rotate" aria-label="Поворот">🔄</button>
+      <button class="mob-btn" id="mob-right" aria-label="Вправо">▶</button>
+      <button class="mob-btn small-text" id="mob-down">▼ Вниз</button>
+      <button class="mob-btn wide" id="mob-drop">⤓ Поставить</button>
     </div>
   </div>
 
-  <div id="boss-modal" class="boss-modal hidden">
-    <div class="boss-content">
-      <h2 class="boss-title">⚠️ БОСС!</h2>
-      <div class="boss-info">
-        <div class="boss-avatar" style="font-size: 80px;">👹</div>
-        <p class="boss-desc" style="margin-top: 10px;">Боссик пришел по твою душу!</p>
-      </div>
-      <button id="btn-start-boss" class="btn-play">В БОЙ!</button>
+  <aside class="sidebar">
+    <div class="panel">
+      <h3>Следующая</h3>
+      <canvas id="next" width="144" height="160"></canvas>
     </div>
-  </div>
+    <div class="panel">
+      <h3>Счёт</h3><div id="score">0</div>
+      <h3>Линии</h3><div id="lines">0</div>
+      <h3>Уровень</h3><div id="level">1</div>
+      <h3>Скорость</h3><div id="speed">100%</div>
+    </div>
+    <button id="sound-btn" class="small-btn">🔊 Звук: вкл</button>
+    <button id="pause-btn">Пауза (P)</button>
+    <button id="restart">Заново</button>
 
-  <div class="game-container">
-    <div class="leaderboard-panel">
-      <h2 id="easter-egg-trigger" style="cursor: pointer; user-select: none;">🏆 Лидеры</h2>
-      <div id="credits-panel" style="display: none; margin-top: 15px; padding: 10px; border: 1px solid var(--accent); border-radius: 8px; background: rgba(0,0,0,0.3); text-align: center;">
-        <div style="font-size: 14px; margin-bottom: 5px;">
-          <span style="color: #9aa; font-size: 12px;">Разраб:</span> <strong style="color: var(--accent);">nedyra</strong>
-        </div>
-        <div style="font-size: 14px; margin-bottom: 10px;">
-          <span style="color: #9aa; font-size: 12px;">Тестер:</span> <strong style="color: var(--accent);">Mokrota</strong>
-        </div>
-        <div id="heart-trigger" style="cursor: pointer; font-size: 12px; color: #e94560; user-select: none;">❤️</div>
-        <div id="final-credit" style="display: none; margin-top: 10px; font-size: 16px; font-weight: bold; color: var(--accent);">Дарюша❤️</div>
-      </div>
-
-      <div class="leaderboard-scroll" id="leaderboard-list">
-        <div style="font-size:11px; color:#9aa; text-align:center;">Загрузка...</div>
-      </div>
-      <div class="nickname-box">
-        <label>Ваш ник:</label>
-        <input type="text" id="player-nick" maxlength="15" placeholder="Игрок" autocomplete="off">
-      </div>
+    <div class="panel" id="admin-panel" style="display:none;">
+      <h3>👑 Админ</h3>
+      <button class="admin-btn" id="admin-clear">Очистить поле</button>
+      <button class="admin-btn" id="admin-squares">Включить фигуру 2x5</button>
+      <input type="text" id="admin-target-nick" placeholder="Ник игрока" autocomplete="off">
+      <input type="number" id="admin-set-score" placeholder="Очки">
+      <button class="admin-btn" id="admin-apply-score">Выдать очки</button>
+      <input type="text" id="admin-new-nick" placeholder="Новый ник" autocomplete="off">
+      <button class="admin-btn" id="admin-apply-nick">Сменить ник</button>
     </div>
 
-    <div class="game-center">
-      <div id="boss-hud" style="display: none; width: 100%; max-width: 300px; background: rgba(15, 15, 30, 0.8); border: 2px solid #e94560; border-radius: 8px; padding: 8px; text-align: center; margin-bottom: 10px;">
-        <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 5px;">
-          <span style="font-size: 24px;">👹</span>
-          <span style="font-weight: bold; color: #e94560; font-size: 16px;">Боссик</span>
-        </div>
-        <div style="width: 100%; height: 12px; background: #000; border-radius: 6px; overflow: hidden;">
-          <div id="boss-hud-fill" style="height: 100%; background: #e94560; width: 100%; transition: width 0.3s;"></div>
-        </div>
-        <div id="boss-hud-text" style="font-size: 11px; margin-top: 3px; color: #fff;">400 / 400</div>
-      </div>
+    <div class="controls">
+      ← → двигать<br>↑ поворот<br>↓ вниз<br>Space — поставить<br>P — пауза
+    </div>
+  </aside>
 
-      <div class="game-area">
-        <canvas id="board" width="300" height="600"></canvas>
+  <aside class="settings">
+    <h2>Настройки</h2>
+
+    <div class="section">
+      <h3>Скорость игры</h3>
+      <div class="slider-item">
+        <label>Старт (мс) <span id="val-start">800</span></label>
+        <input type="range" id="set-start-speed" min="200" max="1500" step="10" value="800">
       </div>
-      <div class="mobile-controls" id="mobile-controls">
-        <button class="mob-btn" id="mob-left">◀</button>
-        <button class="mob-btn" id="mob-rotate">🔄</button>
-        <button class="mob-btn" id="mob-right">▶</button>
-        <button class="mob-btn wide" id="mob-down">▼ Вниз</button>
-        <button class="mob-btn wide" id="mob-drop">⤓ Поставить</button>
+      <div class="slider-item">
+        <label>Ускорение (мс/ур.) <span id="val-step">55</span></label>
+        <input type="range" id="set-speed-step" min="0" max="150" step="5" value="55">
+      </div>
+      <div class="slider-item">
+        <label>Предел (мс) <span id="val-min">90</span></label>
+        <input type="range" id="set-min-speed" min="40" max="400" step="10" value="90">
       </div>
     </div>
 
-    <div class="sidebar">
-      <div class="panel">
-        <h3>Следующая</h3>
-        <canvas id="next" width="120" height="120"></canvas>
-      </div>
-      <div class="panel">
-        <h3>Счёт</h3>
-        <div id="score">0</div>
-        <h3>Линии</h3>
-        <div id="lines">0</div>
-        <h3>Уровень</h3>
-        <div id="level">1</div>
-        <h3>Скорость</h3>
-        <div id="speed">100%</div>
-      </div>
-      <button id="restart">Заново</button>
-      <button id="pause-btn" style="margin-top: 10px;">Пауза (P)</button>
-      
-      <div id="admin-panel" style="display: none; margin-top: 15px; padding: 10px; border: 2px dashed var(--accent); border-radius: 8px; background: rgba(0,0,0,0.2);">
-        <h3 style="color: var(--accent); margin-bottom: 8px;">👑 АДМИН</h3>
-        <button class="admin-btn" id="admin-clear">Очистить поле</button>
-        <button class="admin-btn" id="admin-squares">Включить фигуру 2x5</button>
-        
-        <input type="text" id="admin-target-nick" placeholder="Ник цели" style="width: 100%; padding: 5px; margin-top: 8px; border-radius: 4px; border: 1px solid var(--accent); background: #0f0f1e; color: #fff; font-size: 12px; outline: none;">
-        
-        <input type="number" id="admin-set-score" placeholder="Очки" style="width: 100%; padding: 5px; margin-top: 5px; border-radius: 4px; border: 1px solid var(--accent); background: #0f0f1e; color: #fff; font-size: 12px; outline: none;">
-        <button class="admin-btn" id="admin-apply-score" style="margin-top: 5px;">Выдать очки</button>
-        
-        <input type="text" id="admin-new-nick" placeholder="Новый ник" style="width: 100%; padding: 5px; margin-top: 5px; border-radius: 4px; border: 1px solid var(--accent); background: #0f0f1e; color: #fff; font-size: 12px; outline: none;">
-        <button class="admin-btn" id="admin-apply-nick" style="margin-top: 5px;">Сменить ник</button>
-      </div>
-
-      <div class="controls">← → двигать<br>↑ поворот<br>↓ вниз<br>Space — Поставить</div>
+    <div class="section">
+      <h3>Цвета фигур</h3>
+      <div class="colors" id="colors-panel"></div>
     </div>
 
-    <div class="settings">
-      <h2>Настройки</h2>
-      <div class="section">
-        <h3>Скорость игры</h3>
-        <div class="slider-item">
-          <label>Старт (мс) <span id="val-start">800</span></label>
-          <input type="range" id="set-start-speed" min="300" max="1200" step="50" value="800">
-        </div>
-        <div class="slider-item">
-          <label>Ускорение (мс/ур.) <span id="val-step">55</span></label>
-          <input type="range" id="set-speed-step" min="10" max="150" step="5" value="55">
-        </div>
-        <div class="slider-item">
-          <label>Предел (мс) <span id="val-min">90</span></label>
-          <input type="range" id="set-min-speed" min="30" max="200" step="10" value="90">
-        </div>
-      </div>
-      <div class="section">
-        <h3>Цвета фигур</h3>
-        <div class="colors" id="colors-panel"></div>
-      </div>
-      <div class="section">
-        <h3>Цвета интерфейса</h3>
-        <div class="colors" id="ui-colors-panel"></div>
-      </div>
-      
-      <div class="section">
-        <h3>Настройки фона</h3>
-        <label class="file-btn">
-          📷 Загрузить фото
-          <input type="file" id="bg-upload" accept="image/*" hidden>
-        </label>
-        <button id="bg-reset" class="small-btn" style="border-color: var(--accent); color: var(--accent);">Убрать фото</button>
-        <div id="bg-status" class="status">Фон не задан</div>
-        
-        <div style="display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 12px;">
-          <input type="checkbox" id="use-bg-in-board" style="width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer;">
-          <label for="use-bg-in-board" style="cursor: pointer;">Показывать фото в поле</label>
-        </div>
+    <div class="section">
+      <h3>Цвета интерфейса</h3>
+      <div class="colors" id="ui-colors-panel"></div>
+    </div>
 
-        <div class="slider-item" style="margin-top: 8px;">
-          <label>Прозрачность интерфейса <span id="val-ui-opacity">75</span>%</label>
-          <input type="range" id="set-ui-opacity" min="10" max="100" step="5" value="75">
-        </div>
-      </div>
-      
-      <div class="section" style="margin-top: auto;">
-        <button id="settings-reset" class="small-btn" style="border-color: var(--accent); color: var(--accent);">Сбросить всё</button>
+    <div class="section">
+      <h3>Настройки фона</h3>
+      <label class="file-btn" for="bg-upload">📷 Загрузить фото</label>
+      <input type="file" id="bg-upload" accept="image/*" hidden>
+      <button class="small-btn" id="bg-reset">Убрать фото</button>
+      <div class="status" id="bg-status">Фон не задан</div>
+      <label class="check-item">
+        <input type="checkbox" id="use-bg-in-board" checked>
+        Показывать фото в поле
+      </label>
+      <div class="slider-item">
+        <label>Прозрачность интерфейса <span><span id="val-ui-opacity">75</span>%</span></label>
+        <input type="range" id="set-ui-opacity" min="20" max="100" step="1" value="75">
       </div>
     </div>
-  </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="game.js"></script>
+    <button class="small-btn" id="settings-reset">Сбросить всё</button>
+  </aside>
+
+</div>
 </body>
 </html>
