@@ -197,7 +197,6 @@ kbd { display: inline-block; min-width: 22px; text-align: center; padding: 3px 6
 .leader-name-sub { color: var(--muted); font-size: 12px; }
 .leader-score { color: var(--accent); font-weight: 800; }
 .leader-date { font-size: 10px; color: var(--muted); flex-shrink: 0; }
-.leader-vs { color: var(--muted); font-size: 11px; }
 .nickname-box { margin-top: auto; display: flex; flex-direction: column; gap: 4px; }
 .nickname-box label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
 .nickname-box input { width: 100%; padding: 10px; background-color: var(--bg-inner); border: 1px solid var(--accent); border-radius: 8px; color: #fff; font-size: 14px; outline: none; }

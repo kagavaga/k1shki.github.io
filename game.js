@@ -86,9 +86,11 @@ let lastNetSend = 0;
 let lastStateAt = 0;
 let netLost = false;
 let scoreSubmitted = false;
-let pendingInputs = [];
 let guestInputSeq = 0;
 let lastGuestInputSeq = 0;
+let stateSeq = 0;
+let lastStateSeq = 0;
+let boardDirty = true;
 
 const reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -172,7 +174,7 @@ const lbTabCoop = document.getElementById('lb-tab-coop');
 const lbTabBattle = document.getElementById('lb-tab-battle');
 const toastsBox = document.getElementById('toasts');
 
-bhTimer.classList.add('hidden');
+if (bhTimer) bhTimer.classList.add('hidden');
 
 const SHAPES = {
   I: [[1, 1, 1, 1]],
@@ -251,6 +253,7 @@ function roleModeFromState(md) {
 }
 
 function toast(msg, kind) {
+  if (!toastsBox) return;
   const el = document.createElement('div');
   el.className = 'toast' + (kind ? ' ' + kind : '');
   el.textContent = msg;
@@ -336,13 +339,16 @@ function loadSettings() {
     const opRaw = localStorage.getItem('tetris-ui-opacity');
     if (opRaw) {
       uiOpacity = parseInt(opRaw) || 75;
-      document.getElementById('set-ui-opacity').value = uiOpacity;
-      document.getElementById('val-ui-opacity').textContent = uiOpacity;
+      const so = document.getElementById('set-ui-opacity');
+      const vo = document.getElementById('val-ui-opacity');
+      if (so) so.value = uiOpacity;
+      if (vo) vo.textContent = uiOpacity;
     }
     const bgUse = localStorage.getItem('tetris-use-bg-in-board');
     if (bgUse !== null) {
       useBgInBoard = bgUse === 'true';
-      document.getElementById('use-bg-in-board').checked = useBgInBoard;
+      const cb = document.getElementById('use-bg-in-board');
+      if (cb) cb.checked = useBgInBoard;
     }
     const bgRaw = localStorage.getItem('tetris-bg');
     if (bgRaw) {
@@ -378,7 +384,8 @@ function applyBackgroundToUI(src) {
 }
 
 function updateBgStatus() {
-  document.getElementById('bg-status').textContent = backgroundImage ? '✅ Фото загружено' : 'Фон не задан';
+  const st = document.getElementById('bg-status');
+  if (st) st.textContent = backgroundImage ? '✅ Фото загружено' : 'Фон не задан';
 }
 
 function buildThemePresets() {
@@ -741,6 +748,7 @@ document.getElementById('heart-trigger').addEventListener('click', () => {
 document.getElementById('admin-clear').addEventListener('click', () => {
   if (!isAdmin || isGuest() || isBattle()) return;
   boards[0] = createBoard(boards[0][0].length);
+  boardDirty = true;
   score += 100;
   updateUI();
   draw();
@@ -815,6 +823,7 @@ function applyLayout() {
     canvas.width = SINGLE_COLS * BLOCK;
   }
   canvas.height = ROWS * BLOCK;
+  boardDirty = true;
   fitBoard();
 }
 
@@ -830,10 +839,10 @@ function fitBoard() {
   canvas.style.width = Math.floor(w) + 'px';
   canvas.style.height = Math.floor(h) + 'px';
   const padWidth = Math.floor(w) + 'px';
-  singlePad.style.maxWidth = padWidth;
-  mpPads.style.maxWidth = padWidth;
-  bossHud.style.maxWidth = padWidth;
-  battleHud.style.maxWidth = padWidth;
+  if (singlePad) singlePad.style.maxWidth = padWidth;
+  if (mpPads) mpPads.style.maxWidth = padWidth;
+  if (bossHud) bossHud.style.maxWidth = padWidth;
+  if (battleHud) battleHud.style.maxWidth = padWidth;
 }
 
 window.addEventListener('resize', fitBoard);
@@ -935,6 +944,7 @@ function merge(target, piece) {
     const px = piece.x + x;
     if (v && py >= 0 && py < ROWS && px >= 0 && px < target[0].length) target[py][px] = piece.type;
   }));
+  boardDirty = true;
 }
 
 function overlapsBoardCells(piece) {
@@ -1193,42 +1203,16 @@ function applyAction(i, action) {
   }
 }
 
-function applyPredict(i, action) {
-  const p = pieces[i];
-  if (!p || !alive[i]) return;
-  if (action === 'left' || action === 'right') {
-    const dx = action === 'left' ? -1 : 1;
-    p.x += dx;
-    if (collide(p)) p.x -= dx;
-  } else if (action === 'rotate') {
-    const old = p.matrix;
-    const oldX = p.x;
-    p.matrix = rotate(p.matrix);
-    for (const kick of [0, -1, 1, -2, 2]) {
-      p.x = oldX + kick;
-      if (!collide(p)) return;
-    }
-    p.matrix = old;
-    p.x = oldX;
-  }
-}
-
 function doInput(target, action) {
   if (!gameStarted || gameOver || isPaused || isBossPaused) return;
   if (isGuest()) {
     if (target !== 1) return;
     guestInputSeq++;
-    pendingInputs.push({ seq: guestInputSeq, a: action });
-    if (pendingInputs.length > 64) pendingInputs.shift();
-    if (action === 'left' || action === 'right' || action === 'rotate') applyPredict(1, action);
     sendInputMsg(1, action, guestInputSeq);
     return;
   }
   applyAction(target, action);
-  if (isOnline()) {
-    sendInputMsg(target, action, 0);
-    sendState(true);
-  }
+  if (isOnline()) sendState(true);
 }
 
 function updateBossUI() {
@@ -1269,6 +1253,7 @@ function startBossFight() {
   isBossPaused = false;
   bossBag = [];
   boards[0] = createBoard(boards[0][0].length);
+  boardDirty = true;
   particles = [];
   trailParticles = [];
   lineFlashes = [];
@@ -1342,6 +1327,7 @@ function clearLines(bi, trigger) {
     }
   }
   if (!cleared) return;
+  boardDirty = true;
   const gained = [0, 100, 300, 500, 800][cleared] * level;
   if (isBattle()) {
     scores[bi] += gained;
@@ -1361,6 +1347,7 @@ function clearLines(bi, trigger) {
         isBossActive = false;
         bossScoreTarget = score + BOSS_SCORE_AFTER_WIN;
         boards[0] = createBoard(boards[0][0].length);
+        boardDirty = true;
         dropCounter = 0;
         addShake(9, 450);
         sendFx({ t: 'win' });
@@ -1398,12 +1385,12 @@ function updatePauseBtn() {
 }
 
 function updateBattleHud() {
-  bhName0.textContent = matchNicks[0];
-  bhName1.textContent = matchNicks[1];
-  bhScore0.textContent = isBattle() ? scores[0] : playerScores[0];
-  bhScore1.textContent = isBattle() ? scores[1] : playerScores[1];
-  bhSide0.classList.toggle('dead', isMulti() && !alive[0]);
-  bhSide1.classList.toggle('dead', isMulti() && !alive[1]);
+  if (bhName0) bhName0.textContent = matchNicks[0];
+  if (bhName1) bhName1.textContent = matchNicks[1];
+  if (bhScore0) bhScore0.textContent = isBattle() ? scores[0] : playerScores[0];
+  if (bhScore1) bhScore1.textContent = isBattle() ? scores[1] : playerScores[1];
+  if (bhSide0) bhSide0.classList.toggle('dead', isMulti() && !alive[0]);
+  if (bhSide1) bhSide1.classList.toggle('dead', isMulti() && !alive[1]);
 }
 
 function addShake(power, dur = 180) {
@@ -1727,6 +1714,7 @@ function draw() {
         ctx.font = 'bold 15px "Segoe UI", sans-serif';
         ctx.fillText(matchNicks[0] + ': ' + playerScores[0], canvas.width / 2 - 110, canvas.height / 2 + 50);
         ctx.fillStyle = ownerColor(1);
+        ctx.font = 'bold 15px "Segoe UI", sans-serif';
         ctx.fillText(matchNicks[1] + ': ' + playerScores[1], canvas.width / 2 + 110, canvas.height / 2 + 50);
       }
       ctx.fillStyle = '#93a3b8';
@@ -1791,17 +1779,17 @@ function updateModeUI() {
   const multi = isMulti();
   const online = isOnline();
   gameContainer.classList.toggle('coop', coop);
-  nextBlock2.classList.toggle('hidden', !multi);
+  if (nextBlock2) nextBlock2.classList.toggle('hidden', !multi);
   nextTitle1.textContent = multi ? 'Игрок 1' : 'Следующая';
-  mpExitBtn.classList.toggle('hidden', !online);
-  singlePad.classList.toggle('hidden', multi);
-  mpPads.classList.toggle('hidden', !multi);
-  pad1.classList.toggle('hidden', online && isGuest());
-  pad2.classList.toggle('hidden', online && !isGuest());
-  adminPanel.classList.toggle('hidden', !(isAdmin && !isGuest() && !isBattle()));
+  if (mpExitBtn) mpExitBtn.classList.toggle('hidden', !online);
+  if (singlePad) singlePad.classList.toggle('hidden', multi);
+  if (mpPads) mpPads.classList.toggle('hidden', !multi);
+  if (pad1) pad1.classList.toggle('hidden', online && isGuest());
+  if (pad2) pad2.classList.toggle('hidden', online && !isGuest());
+  if (adminPanel) adminPanel.classList.toggle('hidden', !(isAdmin && !isGuest() && !isBattle()));
   restartBtn.disabled = isGuest();
   pauseBtn.disabled = isGuest();
-  battleHud.classList.toggle('hidden', !multi);
+  if (battleHud) battleHud.classList.toggle('hidden', !multi);
   bossHud.classList.toggle('hidden', !isBossActive || battle);
   if (mode === 'single') modeText.textContent = 'Одиночная игра';
   else if (mode === 'coop-local') modeText.textContent = 'Кооп · локально';
@@ -1877,9 +1865,11 @@ function reset() {
   isPaused = false;
   battleEnded = false;
   battleWinner = -1;
-  pendingInputs = [];
   guestInputSeq = 0;
   lastGuestInputSeq = 0;
+  stateSeq = 0;
+  lastStateSeq = 0;
+  boardDirty = true;
   shakeTime = 0;
   gameContainer.style.transform = '';
   applyLayout();
@@ -2093,14 +2083,14 @@ function joinChannel() {
       });
       channel.on('broadcast', { event: 'input' }, ({ payload }) => {
         if (!payload || payload.from === myId) return;
+        if (isGuest()) return;
         if (!gameStarted || gameOver || isPaused || isBossPaused) return;
-        if (isGuest()) {
-          if (payload.i === 0 && (payload.a === 'left' || payload.a === 'right' || payload.a === 'rotate')) applyPredict(0, payload.a);
-        } else {
-          applyAction(payload.i, payload.a);
-          if (typeof payload.seq === 'number' && payload.seq > lastGuestInputSeq) lastGuestInputSeq = payload.seq;
-          sendState(true);
+        if (typeof payload.seq === 'number' && payload.seq > 0) {
+          if (payload.seq <= lastGuestInputSeq) return;
+          lastGuestInputSeq = payload.seq;
         }
+        applyAction(payload.i, payload.a);
+        sendState(true);
       });
       channel.on('broadcast', { event: 'start' }, ({ payload }) => {
         if (myRole === 'guest') startAsGuest(payload);
@@ -2161,6 +2151,7 @@ function handlePresenceSync() {
       if (!was && partnerConnected) {
         toast('Игрок 2 подключился', 'good');
         alive[1] = true;
+        boardDirty = true;
         if (!pieces[1]) spawnPiece(1);
         isPaused = false;
         updatePauseBtn();
@@ -2216,6 +2207,7 @@ function leaveRoom() {
   roomCode = '';
   myRole = null;
   netLost = false;
+  lastStateSeq = 0;
   updateLobbyUI();
 }
 
@@ -2297,11 +2289,15 @@ mpStartOnline.addEventListener('click', () => {
 
 function broadcastStart() {
   if (!channel || !isOnline() || isGuest()) return;
-  channel.send({ type: 'broadcast', event: 'start', payload: buildNetState() });
+  boardDirty = true;
+  channel.send({ type: 'broadcast', event: 'start', payload: buildNetState(true) });
+  boardDirty = false;
 }
 
 function startAsGuest(payload) {
   mode = roleModeFromState(payload.md);
+  lastStateSeq = 0;
+  stateSeq = 0;
   applyLayout();
   gameContainer.classList.add('settings-hidden');
   mainMenu.classList.add('hidden');
@@ -2314,7 +2310,6 @@ function startAsGuest(payload) {
   lineFlashes = [];
   alive = [true, true];
   playerScores = [0, 0];
-  pendingInputs = [];
   guestInputSeq = 0;
   applyNetState(payload);
   syncMatchNicks();
@@ -2324,10 +2319,10 @@ function startAsGuest(payload) {
   toast(isBattle() ? 'Битва началась! Ты — Игрок 2' : 'Матч начался! Ты — Игрок 2', 'good');
 }
 
-function buildNetState() {
-  return {
+function buildNetState(includeBoard) {
+  const st = {
+    sq: stateSeq,
     md: mode,
-    b: boards.map(b => b.map(r => r.map(t => t ? (CELL_CHARS[t] || 'B') : '.').join(''))),
     p: pieces.map(p => p ? { t: p.type, m: p.matrix, x: p.x, y: p.y } : null),
     d: drops.map(d => d ? { t: d.type, m: d.matrix, x: d.x, y: d.y, s: d.startY, o: d.animOffset } : null),
     n: next.map(n => n ? { t: n.type, m: n.matrix } : null),
@@ -2350,15 +2345,23 @@ function buildNetState() {
     mn: matchNicks,
     ips: lastGuestInputSeq
   };
+  if (includeBoard) {
+    st.b = boards.map(b => b.map(r => r.map(t => t ? (CELL_CHARS[t] || 'B') : '.').join('')));
+  }
+  return st;
 }
 
 function sendState(force) {
   if (!isOnline() || isGuest() || !channel) return;
   const now = performance.now();
-  if (!force && now - lastNetSend < 33) return;
+  if (!force && now - lastNetSend < 20) return;
   lastNetSend = now;
+  stateSeq++;
+  const includeBoard = boardDirty;
+  const payload = buildNetState(includeBoard);
   try {
-    channel.send({ type: 'broadcast', event: 'state', payload: buildNetState() });
+    channel.send({ type: 'broadcast', event: 'state', payload });
+    if (includeBoard) boardDirty = false;
   } catch (e) {}
 }
 
@@ -2377,13 +2380,17 @@ function sendInputMsg(i, a, seq) {
 }
 
 function applyNetState(s) {
-  if (!s || !s.b) return;
+  if (!s || !s.p) return;
+  if (typeof s.sq === 'number') {
+    if (s.sq <= lastStateSeq) return;
+    lastStateSeq = s.sq;
+  }
   const newMode = roleModeFromState(s.md);
   if (newMode !== mode) {
     mode = newMode;
     applyLayout();
   }
-  boards = s.b.map(rowStrs => rowStrs.map(r => r.split('').map(ch => CHAR_CELLS[ch] || null)));
+  if (s.b) boards = s.b.map(rowStrs => rowStrs.map(r => r.split('').map(ch => CHAR_CELLS[ch] || null)));
   pieces = s.p.map((o, idx) => o ? { type: o.t, matrix: o.m, x: o.x, y: o.y, owner: idx } : null);
   drops = s.d.map((o, idx) => o ? { type: o.t, matrix: o.m, x: o.x, y: o.y, startY: o.s, animOffset: o.o, owner: idx } : null);
   next = s.n.map(o => o ? { type: o.t, matrix: o.m, x: 0, y: 0 } : null);
@@ -2403,12 +2410,6 @@ function applyNetState(s) {
   isBossPaused = !!s.bp;
   isPaused = !!s.pa;
   if (s.mn) matchNicks = s.mn;
-  if (typeof s.ips === 'number') {
-    pendingInputs = pendingInputs.filter(p => p.seq > s.ips);
-    pendingInputs.forEach(p => {
-      if (p.a === 'left' || p.a === 'right' || p.a === 'rotate') applyPredict(1, p.a);
-    });
-  }
   const wasOver = gameOver;
   gameOver = !!s.go;
   if (gameOver && !wasOver && !scoreSubmitted) scoreSubmitted = true;
@@ -2584,7 +2585,9 @@ fitBoard();
 draw();
 setLbMode('single');
 
-if (!db) setMpStatus('Онлайн недоступен: сервер не подключён. Локальный мультиплеер работает.', 'bad');
+if (!db) {
+  setMpStatus('Онлайн недоступен: Supabase не загрузился (офлайн или CDN заблокирован). Локальный мультиплеер работает.', 'bad');
+}
 
 const hashMatch = location.hash.match(/room=([A-Za-z0-9]{4})/);
 if (hashMatch) {
