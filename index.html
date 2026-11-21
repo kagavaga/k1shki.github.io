@@ -11,8 +11,11 @@
 </head>
 <body>
 
+<div id="toasts" class="toasts"></div>
+
 <div id="main-menu" class="main-menu">
   <div class="menu-content">
+    <div class="menu-badge">тетрис · кооп · 1 на 1 · босс</div>
     <h1 class="game-title">TTrizz</h1>
     <div class="menu-section">
       <label for="menu-nick">Твой никнейм:</label>
@@ -22,8 +25,89 @@
       <label>Тема оформления:</label>
       <div class="theme-presets" id="theme-presets"></div>
     </div>
-    <button id="btn-play" class="btn-play">▶ Играть</button>
-    <div class="menu-footer">← → двигать | ↑ поворот | ↓ вниз | Space — сброс</div>
+    <div class="menu-actions">
+      <button id="btn-play" class="btn-play">▶ Играть</button>
+      <button id="btn-multiplayer" class="btn-play btn-mp">👥 Мультиплеер</button>
+    </div>
+    <div class="menu-footer">Одиночная: стрелки / WASD · Space / Enter / Num0</div>
+  </div>
+</div>
+
+<div id="mp-modal" class="mp-modal hidden">
+  <div class="mp-content">
+    <button id="mp-close" class="mp-close" aria-label="Закрыть">✕</button>
+    <h2 class="mp-title">Мультиплеер</h2>
+    <p class="mp-sub">Два режима: <b>Кооп</b> — одно широкое поле на двоих. <b>1 на 1</b> — два поля, побеждает тот, у кого больше очков.</p>
+
+    <div class="mp-tabs">
+      <button class="mp-tab active" id="mp-tab-local">Локально</button>
+      <button class="mp-tab" id="mp-tab-online">Онлайн-лобби</button>
+    </div>
+
+    <div class="mp-pane" id="mp-pane-local">
+      <div class="mp-mode-row">
+        <button class="mp-mode-btn active" id="local-mode-coop">🤝 Кооп</button>
+        <button class="mp-mode-btn" id="local-mode-battle">⚔️ 1 на 1</button>
+      </div>
+      <div class="mp-nicks">
+        <div class="mp-nick p1">
+          <label for="local-nick-1">Ник игрока 1</label>
+          <input type="text" id="local-nick-1" maxlength="16" autocomplete="off">
+        </div>
+        <div class="mp-nick p2">
+          <label for="local-nick-2">Ник игрока 2</label>
+          <input type="text" id="local-nick-2" maxlength="16" autocomplete="off">
+        </div>
+      </div>
+      <div class="mp-cards">
+        <div class="mp-card p1">
+          <div class="mp-card-head"><span class="mp-dot"></span>Игрок 1</div>
+          <div class="mp-keys"><kbd>A</kbd><kbd>D</kbd> двигать</div>
+          <div class="mp-keys"><kbd>W</kbd> поворот</div>
+          <div class="mp-keys"><kbd>S</kbd> вниз</div>
+          <div class="mp-keys"><kbd>Space</kbd> сброс</div>
+        </div>
+        <div class="mp-card p2">
+          <div class="mp-card-head"><span class="mp-dot"></span>Игрок 2</div>
+          <div class="mp-keys"><kbd>←</kbd><kbd>→</kbd> двигать</div>
+          <div class="mp-keys"><kbd>↑</kbd> поворот</div>
+          <div class="mp-keys"><kbd>↓</kbd> вниз</div>
+          <div class="mp-keys"><kbd>Enter</kbd> сброс</div>
+        </div>
+      </div>
+      <button id="mp-start-local" class="btn-play">▶ Начать</button>
+    </div>
+
+    <div class="mp-pane hidden" id="mp-pane-online">
+      <div id="mp-online-setup">
+        <button id="mp-create" class="btn-play btn-mp">Создать лобби</button>
+        <div class="mp-or">или</div>
+        <div class="mp-join-row">
+          <input type="text" id="mp-code-input" maxlength="4" placeholder="КОД" autocomplete="off" spellcheck="false">
+          <button id="mp-join" class="small-btn">Подключиться</button>
+        </div>
+      </div>
+
+      <div id="mp-room" class="hidden">
+        <div class="mp-code-box">
+          <span class="mp-code-label">Код лобби</span>
+          <span id="mp-code" class="mp-code">----</span>
+          <div class="mp-code-actions">
+            <button id="mp-copy-code" class="small-btn">Копировать код</button>
+            <button id="mp-copy-link" class="small-btn">Копировать ссылку</button>
+          </div>
+        </div>
+        <div class="mp-roster" id="mp-roster"></div>
+        <div class="mp-mode-row" id="online-mode-row">
+          <button class="mp-mode-btn active" id="online-mode-coop">🤝 Кооп</button>
+          <button class="mp-mode-btn" id="online-mode-battle">⚔️ 1 на 1</button>
+        </div>
+        <button id="mp-start-online" class="btn-play">▶ Начать игру</button>
+        <button id="mp-leave" class="small-btn wide">Выйти из лобби</button>
+      </div>
+
+      <div class="mp-status" id="mp-status">Соединение через Supabase Realtime</div>
+    </div>
   </div>
 </div>
 
@@ -32,11 +116,12 @@
     <div class="boss-title">⚠️ БОСС!</div>
     <div class="boss-info">
       <div class="boss-avatar">👹</div>
-      <div class="boss-hp-bar"><div class="boss-hp-fill" style="width:100%"></div></div>
+      <div class="boss-hp-bar"><div class="boss-hp-fill"></div></div>
       <div class="boss-hp-text">400 / 400</div>
     </div>
-    <div class="boss-desc">Боссик пришел по твою душу!<br>Собирай линии, чтобы нанести урон. Каждая линия — 15 урона.</div>
+    <div class="boss-desc">Боссик пришел по ваши души!<br>Собирай линии, чтобы нанести урон. Каждая линия — 15 урона.</div>
     <button id="btn-start-boss" class="btn-play">В бой!</button>
+    <div id="boss-wait" class="boss-wait hidden">Ждём, пока хост начнёт бой…</div>
   </div>
 </div>
 
@@ -44,13 +129,18 @@
 
   <aside class="leaderboard-panel">
     <h2 id="easter-egg-trigger" title="🏆">🏆 Лидеры</h2>
-    <div id="credits-panel" class="credits" style="display:none;">
+    <div class="lb-tabs">
+      <button class="lb-tab active" id="lb-tab-single">Соло</button>
+      <button class="lb-tab" id="lb-tab-coop">Кооп</button>
+      <button class="lb-tab" id="lb-tab-battle">1v1</button>
+    </div>
+    <div id="credits-panel" class="credits hidden">
       Разраб: <b>nedyra</b><br>
       Тестер: <b>Mokrota</b> <span id="heart-trigger" class="heart">❤️</span>
     </div>
-    <div id="final-credit" class="credits final" style="display:none;">Дарюша ❤️</div>
+    <div id="final-credit" class="credits final hidden">Дарюша ❤️</div>
     <div class="leaderboard-scroll" id="leaderboard-list">
-      <div style="font-size:11px; color:#9aa; text-align:center;">Загрузка...</div>
+      <div class="leader-empty">Загрузка...</div>
     </div>
     <div class="nickname-box">
       <label for="player-nick">Ваш ник:</label>
@@ -59,14 +149,30 @@
   </aside>
 
   <div class="game-center">
-    <div id="boss-hud" class="boss-bar" style="display:none;">
+    <div class="mode-chip" id="mode-chip">
+      <span class="dot local" id="mode-dot"></span>
+      <span id="mode-text">Одиночная игра</span>
+      <span class="mode-room hidden" id="mode-room"></span>
+    </div>
+
+    <div id="battle-hud" class="battle-hud hidden">
+      <div class="bh-side p1">
+        <span class="bh-name" id="bh-name-0">Игрок 1</span>
+        <span class="bh-score" id="bh-score-0">0</span>
+      </div>
+      <div class="bh-timer" id="bh-timer">02:00</div>
+      <div class="bh-side p2">
+        <span class="bh-name" id="bh-name-1">Игрок 2</span>
+        <span class="bh-score" id="bh-score-1">0</span>
+      </div>
+    </div>
+
+    <div id="boss-hud" class="boss-bar hidden">
       <div class="boss-bar-left">
         <span class="boss-icon">👹</span>
         <span class="boss-name">Боссик</span>
       </div>
-      <div class="boss-bar-track">
-        <div class="boss-bar-fill" id="boss-hud-fill"></div>
-      </div>
+      <div class="boss-bar-track"><div class="boss-bar-fill" id="boss-hud-fill"></div></div>
       <span class="boss-bar-text" id="boss-hud-text">400 / 400</span>
     </div>
 
@@ -74,19 +180,63 @@
       <canvas id="board" width="300" height="600"></canvas>
     </div>
 
+    <div class="mp-legend hidden" id="mp-legend">
+      <div class="legend-card p1" id="legend-1">
+        <span class="legend-head">
+          <span class="legend-name">Игрок 1</span>
+          <span class="legend-score" id="legend-score-1">0</span>
+        </span>
+        <span class="legend-keys"><kbd>A</kbd><kbd>D</kbd><kbd>W</kbd><kbd>S</kbd> · <kbd>Space</kbd></span>
+      </div>
+      <div class="legend-card p2" id="legend-2">
+        <span class="legend-head">
+          <span class="legend-name">Игрок 2</span>
+          <span class="legend-score" id="legend-score-2">0</span>
+        </span>
+        <span class="legend-keys"><kbd>←</kbd><kbd>→</kbd><kbd>↑</kbd><kbd>↓</kbd> · <kbd>Enter</kbd></span>
+      </div>
+    </div>
+
     <div class="mobile-controls" id="mobile-controls">
-      <button class="mob-btn" id="mob-left" aria-label="Влево">◀</button>
-      <button class="mob-btn" id="mob-rotate" aria-label="Поворот">🔄</button>
-      <button class="mob-btn" id="mob-right" aria-label="Вправо">▶</button>
+      <button class="mob-btn" id="mob-left">◀</button>
+      <button class="mob-btn" id="mob-rotate">🔄</button>
+      <button class="mob-btn" id="mob-right">▶</button>
       <button class="mob-btn small-text" id="mob-down">▼ Вниз</button>
       <button class="mob-btn wide" id="mob-drop">⤓ Поставить</button>
+    </div>
+
+    <div class="mp-mobile hidden" id="mp-mobile">
+      <div class="mp-pad p1" id="mp-pad-1">
+        <div class="mp-pad-title">Игрок 1</div>
+        <div class="mp-pad-grid">
+          <button class="mob-btn" id="m1-left">◀</button>
+          <button class="mob-btn" id="m1-rotate">🔄</button>
+          <button class="mob-btn" id="m1-right">▶</button>
+          <button class="mob-btn small-text" id="m1-down">▼</button>
+          <button class="mob-btn wide" id="m1-drop">⤓ Сброс</button>
+        </div>
+      </div>
+      <div class="mp-pad p2" id="mp-pad-2">
+        <div class="mp-pad-title">Игрок 2</div>
+        <div class="mp-pad-grid">
+          <button class="mob-btn" id="m2-left">◀</button>
+          <button class="mob-btn" id="m2-rotate">🔄</button>
+          <button class="mob-btn" id="m2-right">▶</button>
+          <button class="mob-btn small-text" id="m2-down">▼</button>
+          <button class="mob-btn wide" id="m2-drop">⤓ Сброс</button>
+        </div>
+      </div>
     </div>
   </div>
 
   <aside class="sidebar">
-    <div class="panel">
-      <h3>Следующая</h3>
-      <canvas id="next" width="144" height="160"></canvas>
+    <div class="panel next-panel">
+      <h3 id="next-title-1">Следующая</h3>
+      <canvas id="next" width="144" height="140"></canvas>
+      <div id="next-block-2" class="hidden">
+        <h3 id="next-title-2">Игрок 2</h3>
+        <canvas id="next2" width="144" height="140"></canvas>
+      </div>
     </div>
     <div class="panel">
       <h3>Счёт</h3><div id="score">0</div>
@@ -94,11 +244,13 @@
       <h3>Уровень</h3><div id="level">1</div>
       <h3>Скорость</h3><div id="speed">100%</div>
     </div>
-    <button id="sound-btn" class="small-btn">🔊 Звук: вкл</button>
-    <button id="pause-btn">Пауза (P)</button>
+    <button id="pause-btn">Пауза</button>
     <button id="restart">Заново</button>
+    <button id="menu-btn" class="small-btn">🏠 В меню</button>
+    <button id="settings-toggle" class="small-btn">⚙ Настройки</button>
+    <button id="mp-exit" class="small-btn danger hidden">Выйти из лобби</button>
 
-    <div class="panel" id="admin-panel" style="display:none;">
+    <div class="panel hidden" id="admin-panel">
       <h3>👑 Админ</h3>
       <button class="admin-btn" id="admin-clear">Очистить поле</button>
       <button class="admin-btn" id="admin-squares">Включить фигуру 2x5</button>
@@ -110,7 +262,9 @@
     </div>
 
     <div class="controls">
-      ← → двигать<br>↑ поворот<br>↓ вниз<br>Space — поставить<br>P — пауза
+      Игрок 1: WASD + Space<br>
+      Игрок 2: стрелки + Enter<br>
+      Соло: всё вместе
     </div>
   </aside>
 
