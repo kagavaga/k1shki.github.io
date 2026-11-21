@@ -234,6 +234,7 @@ function isCoop() { return mode.startsWith('coop'); }
 function isOnline() { return mode.endsWith('host') || mode.endsWith('guest'); }
 function isGuest() { return mode.endsWith('guest'); }
 function isMulti() { return mode !== 'single'; }
+function myPlayerIndex() { return isGuest() ? 1 : 0; }
 function ownerColor(i) { return i === 0 ? UI_COLORS.accent : UI_COLORS.accent2; }
 function createBoard(width) { return Array.from({ length: ROWS }, () => Array(width).fill(null)); }
 function boardIndexOf(i) { return isBattle() ? i : 0; }
@@ -550,6 +551,16 @@ function formatDate(s) {
   }
 }
 
+function winsText(n) {
+  const v = Number(n) || 0;
+  const n10 = v % 10;
+  const n100 = v % 100;
+  let word = 'побед';
+  if (n10 === 1 && n100 !== 11) word = 'победа';
+  else if (n10 >= 2 && n10 <= 4 && (n100 < 12 || n100 > 14)) word = 'победы';
+  return v + ' ' + word;
+}
+
 function setLbMode(m) {
   lbMode = m;
   lbTabSingle.classList.toggle('active', m === 'single');
@@ -578,7 +589,7 @@ async function fetchLeaderboard() {
       if (error) throw error;
       renderCoopLB(data);
     } else {
-      const { data, error } = await db.from('battle_leaderboard').select('winner_name, loser_name, winner_score, loser_score, played_at').order('winner_score', { ascending: false }).limit(20);
+      const { data, error } = await db.from('battle_leaderboard').select('nick, wins').order('wins', { ascending: false }).limit(20);
       if (error) throw error;
       renderBattleLB(data);
     }
@@ -610,8 +621,8 @@ function renderCoopLB(data) {
   leaderboardList.innerHTML = '';
   data.forEach((e, i) => {
     const div = document.createElement('div');
-    div.className = 'leader-item';
-    div.innerHTML = `<span class="leader-rank">${i + 1}.</span><span class="leader-name">${escapeHTML(e.nick1)} + ${escapeHTML(e.nick2)}</span><span class="leader-score">${Number(e.score) || 0}</span><span class="leader-date">${formatDate(e.played_at)}</span>`;
+    div.className = 'leader-item leader-item-stack';
+    div.innerHTML = `<span class="leader-rank">${i + 1}.</span><div class="leader-stack"><div class="leader-line"><span class="leader-name">${escapeHTML(e.nick1)}</span><span class="leader-score">${Number(e.score) || 0}</span></div><div class="leader-line"><span class="leader-name leader-name-sub">${escapeHTML(e.nick2)}</span><span class="leader-date">${formatDate(e.played_at)}</span></div></div>`;
     leaderboardList.appendChild(div);
   });
 }
@@ -625,7 +636,7 @@ function renderBattleLB(data) {
   data.forEach((e, i) => {
     const div = document.createElement('div');
     div.className = 'leader-item';
-    div.innerHTML = `<span class="leader-rank">${i + 1}.</span><span class="leader-name">${escapeHTML(e.winner_name)} <span class="leader-vs">${e.winner_score}:${e.loser_score}</span> ${escapeHTML(e.loser_name)}</span><span class="leader-date">${formatDate(e.played_at)}</span>`;
+    div.innerHTML = `<span class="leader-rank">${i + 1}.</span><span class="leader-name">${escapeHTML(e.nick)}</span><span class="leader-score">${winsText(e.wins)}</span>`;
     leaderboardList.appendChild(div);
   });
 }
@@ -647,23 +658,48 @@ async function addScoreToLeaderboard(finalScore) {
 async function submitCoop(finalScore) {
   if (!db) return;
   try {
-    await db.from('coop_leaderboard').insert({ nick1: matchNicks[0], nick2: matchNicks[1], score: finalScore });
+    const n1 = (matchNicks[0] || '').trim() || 'Игрок 1';
+    const n2 = (matchNicks[1] || '').trim() || 'Игрок 2';
+    const pair = [n1, n2].sort((a, b) => a.localeCompare(b, 'ru'));
+    const nick1 = pair[0];
+    const nick2 = pair[1];
+    const { data } = await db.from('coop_leaderboard').select('id, score').eq('nick1', nick1).eq('nick2', nick2).maybeSingle();
+    if (data) {
+      if (finalScore > data.score) {
+        await db.from('coop_leaderboard').update({ score: finalScore, played_at: new Date().toISOString() }).eq('id', data.id);
+      }
+    } else {
+      await db.from('coop_leaderboard').insert({ nick1, nick2, score: finalScore });
+    }
     if (lbMode === 'coop') fetchLeaderboard();
   } catch (e) {}
 }
 
 async function submitBattle() {
   if (!db) return;
+  if (battleWinner !== 0 && battleWinner !== 1) return;
   try {
-    const w = battleWinner >= 0 ? battleWinner : (scores[0] >= scores[1] ? 0 : 1);
-    await db.from('battle_leaderboard').insert({
-      winner_name: matchNicks[w],
-      loser_name: matchNicks[1 - w],
-      winner_score: scores[w],
-      loser_score: scores[1 - w]
-    });
+    const nick = (matchNicks[battleWinner] || '').trim() || 'Игрок';
+    const { data } = await db.from('battle_leaderboard').select('id, wins').eq('nick', nick).maybeSingle();
+    if (data) {
+      await db.from('battle_leaderboard').update({ wins: (Number(data.wins) || 0) + 1 }).eq('id', data.id);
+    } else {
+      await db.from('battle_leaderboard').insert({ nick, wins: 1 });
+    }
     if (lbMode === 'battle') fetchLeaderboard();
   } catch (e) {}
+}
+
+function syncMatchNicks() {
+  if (!isOnline()) return;
+  if (isGuest()) {
+    if (partnerNick) matchNicks[0] = partnerNick;
+    matchNicks[1] = getNick();
+  } else {
+    matchNicks[0] = getNick();
+    if (partnerNick) matchNicks[1] = partnerNick;
+  }
+  updateBattleHud();
 }
 
 function checkAdmin(nick) {
@@ -745,6 +781,8 @@ nickInput.addEventListener('input', () => {
   if (menuNick.value !== nickInput.value) menuNick.value = nickInput.value;
   checkAdmin(nickInput.value.trim());
   if (channel) channel.track({ id: myId, role: myRole, nick: getNick(), ts: Date.now() });
+  syncMatchNicks();
+  sendState(true);
 });
 
 menuNick.addEventListener('input', () => {
@@ -958,6 +996,15 @@ function endBattle(forcedWinner) {
 }
 
 function killPlayer(i) {
+  if (isGuest()) {
+    alive[i] = false;
+    pieces[i] = null;
+    drops[i] = null;
+    next[i] = null;
+    updateModeUI();
+    drawNext();
+    return;
+  }
   if (isBattle()) {
     endBattle(1 - i);
     return;
@@ -1122,33 +1169,10 @@ function applyAction(i, action) {
 
 function doInput(target, action) {
   if (!gameStarted || gameOver || isPaused || isBossPaused) return;
-  if (isGuest()) {
-    if (target !== 1) return;
-    guestPredict(action);
-    sendInput(action);
-    return;
-  }
   applyAction(target, action);
-  if (isOnline()) sendState(true);
-}
-
-function guestPredict(action) {
-  const p = pieces[1];
-  if (!p) return;
-  if (action === 'left' || action === 'right') {
-    const dx = action === 'left' ? -1 : 1;
-    p.x += dx;
-    if (collide(p)) p.x -= dx;
-  } else if (action === 'rotate') {
-    const old = p.matrix;
-    const oldX = p.x;
-    p.matrix = rotate(p.matrix);
-    for (const kick of [0, -1, 1, -2, 2]) {
-      p.x = oldX + kick;
-      if (!collide(p)) return;
-    }
-    p.matrix = old;
-    p.x = oldX;
+  if (isOnline()) {
+    sendInputMsg(target, action);
+    if (!isGuest()) sendState(true);
   }
 }
 
@@ -1167,11 +1191,12 @@ function syncBossModal() {
 }
 
 function checkForBoss() {
-  if (isBattle()) return;
+  if (isBattle() || isGuest()) return;
   if (!isBossActive && !isBossPaused && score >= bossScoreTarget) triggerBoss();
 }
 
 function triggerBoss() {
+  if (isGuest() || isBattle()) return;
   isBossActive = true;
   isBossPaused = true;
   bossHP = BOSS_MAX_HP;
@@ -1723,7 +1748,7 @@ function updateModeUI() {
   singlePad.classList.toggle('hidden', multi);
   mpPads.classList.toggle('hidden', !multi);
   pad1.classList.toggle('hidden', isGuest());
-  pad2.classList.toggle('hidden', online && !isGuest());
+  pad2.classList.toggle('hidden', isOnline() && !isGuest());
   adminPanel.classList.toggle('hidden', !(isAdmin && !isGuest() && !isBattle()));
   restartBtn.disabled = isGuest();
   pauseBtn.disabled = isGuest();
@@ -1842,33 +1867,12 @@ function update(time = 0) {
   updateShake(delta);
   updateParticles();
 
-  if (isGuest()) {
-    if (performance.now() - lastStateAt > 4000 && !netLost) {
-      netLost = true;
-      updateModeUI();
-    }
-    for (let i = 0; i < 2; i++) {
-      const d = drops[i];
-      if (!d) continue;
-      d.animOffset += delta * DROP_SPEED;
-      createTrailParticles(d);
-      while (d.animOffset >= 1) {
-        const probe = { type: d.type, matrix: d.matrix, x: d.x, y: d.y + 1, owner: i };
-        if (collide(probe)) {
-          d.animOffset = 0;
-          break;
-        }
-        d.y++;
-        d.animOffset -= 1;
-      }
-    }
-    hue = (hue + 2) % 360;
-    draw();
-    rafId = requestAnimationFrame(update);
-    return;
+  if (isGuest() && performance.now() - lastStateAt > 4000 && !netLost) {
+    netLost = true;
+    updateModeUI();
   }
 
-  if (isOnline()) sendState(false);
+  if (isOnline() && !isGuest()) sendState(false);
 
   if (gameOver || isPaused || isBossPaused) {
     draw();
@@ -1877,7 +1881,7 @@ function update(time = 0) {
   }
 
   hue = (hue + 2) % 360;
-  if (isBattle() && !battleEnded) {
+  if (isBattle() && !battleEnded && !isGuest()) {
     battleTimer -= delta / 1000;
     if (battleTimer <= 0) {
       battleTimer = 0;
@@ -2041,10 +2045,10 @@ function joinChannel() {
         if (myRole === 'guest') applyNetFx(payload);
       });
       channel.on('broadcast', { event: 'input' }, ({ payload }) => {
-        if (myRole === 'host' && payload && payload.from !== myId) {
-          if (gameStarted && !gameOver && !isPaused && !isBossPaused) applyAction(1, payload.a);
-          sendState(true);
-        }
+        if (!payload || payload.from === myId) return;
+        if (!gameStarted || gameOver || isPaused || isBossPaused) return;
+        applyAction(payload.i, payload.a);
+        if (!isGuest()) sendState(true);
       });
       channel.on('broadcast', { event: 'start' }, ({ payload }) => {
         if (myRole === 'guest') startAsGuest(payload);
@@ -2092,6 +2096,7 @@ function handlePresenceSync() {
     if (guests.length > 1) {
       channel.send({ type: 'broadcast', event: 'full', payload: { to: guests[1].id } });
     }
+    syncMatchNicks();
     if (gameStarted && isOnline() && !isGuest()) {
       if (was && !partnerConnected) {
         pieces[1] = null;
@@ -2120,6 +2125,7 @@ function handlePresenceSync() {
       leaveRoom();
       return;
     }
+    syncMatchNicks();
     if (gameStarted && isGuest() && was && !partnerConnected) {
       netLost = true;
       toast('Хост отключился', 'bad');
@@ -2231,7 +2237,7 @@ mpExitBtn.addEventListener('click', () => {
 mpStartOnline.addEventListener('click', () => {
   mpStartOnline.blur();
   if (myRole !== 'host' || !partnerConnected) return;
-  matchNicks = [getNick(), partnerNick || 'Игрок 2'];
+  syncMatchNicks();
   startMode(selectedOnlineMode === 'battle' ? 'battle-host' : 'coop-host');
   broadcastStart();
   toast('Матч начался!', 'good');
@@ -2257,6 +2263,7 @@ function startAsGuest(payload) {
   alive = [true, true];
   playerScores = [0, 0];
   applyNetState(payload);
+  syncMatchNicks();
   setLbMode(isBattle() ? 'battle' : 'coop');
   updateModeUI();
   startLoop();
@@ -2294,7 +2301,7 @@ function buildNetState() {
 function sendState(force) {
   if (!isOnline() || isGuest() || !channel) return;
   const now = performance.now();
-  if (!force && now - lastNetSend < 50) return;
+  if (!force && now - lastNetSend < 33) return;
   lastNetSend = now;
   try {
     channel.send({ type: 'broadcast', event: 'state', payload: buildNetState() });
@@ -2308,10 +2315,10 @@ function sendFx(payload) {
   } catch (e) {}
 }
 
-function sendInput(action) {
+function sendInputMsg(i, a) {
   if (!channel) return;
   try {
-    channel.send({ type: 'broadcast', event: 'input', payload: { from: myId, a: action } });
+    channel.send({ type: 'broadcast', event: 'input', payload: { from: myId, i, a } });
   } catch (e) {}
 }
 
