@@ -156,12 +156,12 @@
     </div>
 
     <div id="battle-hud" class="battle-hud hidden">
-      <div class="bh-side p1">
+      <div class="bh-side p1" id="bh-side-0">
         <span class="bh-name" id="bh-name-0">Игрок 1</span>
         <span class="bh-score" id="bh-score-0">0</span>
       </div>
       <div class="bh-timer" id="bh-timer">02:00</div>
-      <div class="bh-side p2">
+      <div class="bh-side p2" id="bh-side-1">
         <span class="bh-name" id="bh-name-1">Игрок 2</span>
         <span class="bh-score" id="bh-score-1">0</span>
       </div>
@@ -178,23 +178,6 @@
 
     <div class="game-area">
       <canvas id="board" width="300" height="600"></canvas>
-    </div>
-
-    <div class="mp-legend hidden" id="mp-legend">
-      <div class="legend-card p1" id="legend-1">
-        <span class="legend-head">
-          <span class="legend-name">Игрок 1</span>
-          <span class="legend-score" id="legend-score-1">0</span>
-        </span>
-        <span class="legend-keys"><kbd>A</kbd><kbd>D</kbd><kbd>W</kbd><kbd>S</kbd> · <kbd>Space</kbd></span>
-      </div>
-      <div class="legend-card p2" id="legend-2">
-        <span class="legend-head">
-          <span class="legend-name">Игрок 2</span>
-          <span class="legend-score" id="legend-score-2">0</span>
-        </span>
-        <span class="legend-keys"><kbd>←</kbd><kbd>→</kbd><kbd>↑</kbd><kbd>↓</kbd> · <kbd>Enter</kbd></span>
-      </div>
     </div>
 
     <div class="mobile-controls" id="mobile-controls">

@@ -160,9 +160,10 @@ kbd { display: inline-block; min-width: 22px; text-align: center; padding: 3px 6
 .mode-room { font-family: ui-monospace, Consolas, monospace; color: var(--accent); letter-spacing: 3px; }
 
 .battle-hud { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 10px; background-color: var(--bg-panel); border: 1px solid var(--line); border-radius: 12px; padding: 8px 14px; }
-.bh-side { display: flex; flex-direction: column; gap: 2px; min-width: 90px; }
+.bh-side { display: flex; flex-direction: column; gap: 2px; min-width: 90px; transition: 0.2s; }
 .bh-side.p1 { align-items: flex-start; }
 .bh-side.p2 { align-items: flex-end; }
+.bh-side.dead { opacity: 0.4; filter: grayscale(0.7); }
 .bh-name { font-size: 11px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bh-side.p1 .bh-name { color: var(--p1); }
 .bh-side.p2 .bh-name { color: var(--p2); }
@@ -176,21 +177,6 @@ kbd { display: inline-block; min-width: 22px; text-align: center; padding: 3px 6
 .boss-bar-track { flex: 1; height: 16px; background-color: var(--bg-inner); border: 1px solid var(--danger); border-radius: 8px; overflow: hidden; }
 .boss-bar-fill { height: 100%; width: 100%; background-color: var(--danger); transition: width 0.25s ease; }
 .boss-bar-text { font-size: 12px; font-weight: 800; min-width: 66px; text-align: right; }
-
-.mp-legend { display: flex; gap: 10px; width: 100%; }
-.legend-card { flex: 1; background-color: var(--bg-panel); border-radius: 10px; padding: 8px 10px; display: flex; flex-direction: column; gap: 5px; border-left: 3px solid var(--muted); opacity: 0.7; transition: 0.2s; }
-.legend-card.p1 { border-left-color: var(--p1); }
-.legend-card.p2 { border-left-color: var(--p2); }
-.legend-card.me { opacity: 1; border-color: var(--line); }
-.legend-card.p1.me { border-left-color: var(--p1); }
-.legend-card.p2.me { border-left-color: var(--p2); }
-.legend-card.dead { opacity: 0.35; filter: grayscale(0.8); }
-.legend-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.legend-name { font-size: 11px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; }
-.legend-card.p1 .legend-name { color: var(--p1); }
-.legend-card.p2 .legend-name { color: var(--p2); }
-.legend-score { font-family: ui-monospace, Consolas, monospace; font-size: 15px; font-weight: 800; color: #fff; background-color: var(--bg-inner); border: 1px solid var(--line); border-radius: 6px; padding: 2px 8px; min-width: 44px; text-align: center; }
-.legend-keys { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; font-size: 10px; color: var(--muted); }
 
 .leaderboard-panel { width: 240px; background-color: var(--bg-panel); padding: 15px; border-radius: 12px; display: flex; flex-direction: column; gap: 10px; border: 1px solid var(--line); }
 .leaderboard-panel h2 { font-size: 18px; color: var(--accent); text-align: center; user-select: none; cursor: default; }
@@ -299,7 +285,6 @@ button:focus-visible, input:focus-visible, .theme-btn:focus-visible { outline: 2
   .settings .colors { grid-template-columns: repeat(4, 1fr); }
   .mobile-controls { display: grid; }
   .mp-mobile { display: flex; }
-  .mp-legend { flex-direction: column; }
   .mp-cards { flex-direction: column; }
   .mp-nicks { flex-direction: column; }
 }
